@@ -44,6 +44,7 @@ namespace KoolbarTelegramBot
             );
 
             var me = await _botClient.GetMeAsync();
+            //await _botClient.DeleteWebhookAsync();
             Console.WriteLine("Telegram bot is start running...");
         }
 

@@ -11,6 +11,9 @@ namespace KoolbarTelegramBot.HttpClientProvider
         {
             _client = new HttpClient();
             _client.BaseAddress = new Uri((Extentions.ReadFromJson("config.json").Result).BaseUrl);
+#if !DEBUG
+_client.BaseAddress = new Uri("http://localhost:5000/api/");
+#endif
         }
         public static async Task<T> GetAsync<T>(string url) where T : class
         {
