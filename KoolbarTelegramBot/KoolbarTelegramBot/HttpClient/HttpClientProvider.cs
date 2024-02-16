@@ -7,10 +7,12 @@ namespace KoolbarTelegramBot.HttpClientProvider
     public static class ApiCall
     {
         private static readonly HttpClient _client;
+        
+        private static readonly string BaseUrl = "https://localhost:7171/api/";
         static ApiCall()
         {
             _client = new HttpClient();
-            _client.BaseAddress = new Uri((Extentions.ReadFromJson("config.json").Result).BaseUrl);
+            _client.BaseAddress = new Uri(BaseUrl);
 #if !DEBUG
 _client.BaseAddress = new Uri("http://localhost:5000/api/");
 #endif

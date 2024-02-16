@@ -331,7 +331,7 @@ namespace KoolbarTelegramBot
             // Send message!
             try
             {
-                await _botClient.SendTextMessageAsync(id, "نوع درخواست خود را مشخص کنید.", replyMarkup: x);
+                await _botClient.SendTextMessageAsync(id, "نوع درخواست خود را مشخص کنید.", replyMarkup: inline);
             }
             catch (Exception ex)
             {
