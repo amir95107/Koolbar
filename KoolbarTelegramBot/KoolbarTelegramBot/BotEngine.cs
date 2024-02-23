@@ -99,11 +99,25 @@ namespace KoolbarTelegramBot
             switch (_requestStatus)
             {
                 case RequestStatus.TypeDeclared:
-                    await HandleSearchSourceCallbackAsync(update.Message.Chat.Id, text);
+                    if (message.Text.ToLower().StartsWith("s:"))
+                    {
+                        await HandleAddSourceCallbackAsync(update.Message.Chat.Id, text);
+                    }
+                    else
+                    {
+                        await HandleSearchSourceCallbackAsync(update.Message.Chat.Id, text);
+                    }
                     break;
 
                 case RequestStatus.SourceDeclared:
-                    await HandleAddDestionationCallbackAsync(update.Message.Chat.Id, text);
+                    if (message.Text.ToLower().StartsWith("s:"))
+                    {
+                        await HandleAddDestionationCallbackAsync(update.Message.Chat.Id, text);
+                    }
+                    else
+                    {
+                        await HandleSearchDestionationCallbackAsync(update.Message.Chat.Id, text);
+                    }
                     break;
 
                 case RequestStatus.DestinationDeclared:
@@ -167,6 +181,16 @@ namespace KoolbarTelegramBot
             await _botClient.SendTextMessageAsync(id, "لطفا از بین شهرهای زیر شهر مبدا خود را انتخاب کنید:", replyMarkup: x, replyToMessageId:messageId);
         }
 
+        private async Task HandleSearchDestionationCallbackAsync(long id, string source)
+        {
+            var cities = await ApiCall.GetAsync<List<CityDto>>($"states/search/{source}");
+
+            ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "d");
+
+            await _botClient.SendTextMessageAsync(id, "لطفا از بین شهرهای زیر شهر مقصد خود را انتخاب کنید:", replyMarkup: x, replyToMessageId: messageId);
+        }
+
+
         private static ReplyKeyboardMarkup GenerateKeyboardButtonForCities(List<CityDto> cities, string sord)
         {
             var buttons = new List<List<KeyboardButton>>();
@@ -191,7 +215,7 @@ namespace KoolbarTelegramBot
             await ApiCall.PostAsync("requests/source", new RequestDto
             {
                 ChatId = id,
-                Source = source,
+                Source = source.Split("s:")[1],
             });
 
             _source = source;
@@ -208,7 +232,7 @@ namespace KoolbarTelegramBot
             await ApiCall.PostAsync("requests/destination", new RequestDto
             {
                 ChatId = id,
-                Destination = destination,
+                Destination = destination.Split("d:")[1],
             });
 
             _destination = destination;
