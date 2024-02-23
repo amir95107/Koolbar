@@ -118,8 +118,6 @@ namespace DataLayer.Models.Base
     {
         public Guid Id { get; set; }
 
-        [Timestamp]
-        public byte[] RowVersion { get; set; }
         public void Apply(object @event)
         {
             EnsureReadyState(@event);

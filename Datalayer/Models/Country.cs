@@ -2,27 +2,12 @@
 
 namespace Datalayer.Models
 {
-    public class Country : GuidAuditableEntity
+    public class Country : LocationBase
     {
-        public string Title { get; set; }
-        public string EnglishTitle { get; set; }
+
+        public int CountryNumber { get; set; }
 
 
         public virtual ICollection<State> States { get; set; }
-
-        protected override void EnsureReadyState(object @event)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EnsureValidState()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void When(object @event)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

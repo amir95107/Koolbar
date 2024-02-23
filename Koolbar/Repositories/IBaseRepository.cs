@@ -6,7 +6,7 @@ public interface IBaseRepository<TEntity, TKey>
 {
     DbSet<TEntity> Entities { get; }
     Task<TEntity> FindAsync(TKey id);
-    Task<List<TEntity>> GetAllAsync();
+    Task<List<TEntity>> GetAllAsync(int skip, int take);
     Task AddAsync(TEntity entity);
     void Modify(TEntity entity);
     Task Remove(TKey id);

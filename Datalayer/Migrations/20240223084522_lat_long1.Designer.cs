@@ -4,6 +4,7 @@ using Datalayer.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Datalayer.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20240223084522_lat_long1")]
+    partial class lat_long1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -28,14 +31,15 @@ namespace Datalayer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("CityNumber")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EnglishTitle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double?>("Lat")
                         .HasColumnType("float");
@@ -49,14 +53,17 @@ namespace Datalayer.Migrations
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("PersianTitle")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("RemovedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("RemovedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<Guid>("StateId")
                         .HasColumnType("uniqueidentifier");
@@ -78,14 +85,15 @@ namespace Datalayer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("CountryNumber")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EnglishTitle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -93,14 +101,17 @@ namespace Datalayer.Migrations
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("PersianTitle")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("RemovedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("RemovedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -235,6 +246,12 @@ namespace Datalayer.Migrations
                     b.Property<Guid?>("RemovedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<Guid>("SponserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -261,23 +278,21 @@ namespace Datalayer.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("EnglishTitle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("ModifiedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("PersianTitle")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("RemovedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("RemovedBy")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("StateNumber")
-                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()

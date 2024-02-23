@@ -48,5 +48,8 @@ namespace Koolbar.Services
 
         public Task<List<TEntity>> GetAllAsync()
             => Entities.ToListAsync();
+
+        public virtual async Task<List<TEntity>> GetAllAsync(int skip, int take)
+            => await Entities.Skip(skip).Take(take).ToListAsync();
     }
 }

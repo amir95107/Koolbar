@@ -142,5 +142,20 @@ namespace Koolbar.Controllers
                 await _requestRepository.SaveChangesAsync();
             }
         }
+
+        [HttpGet("suggest/{id}")]
+        public async Task<List<Request>> Suggest([FromRoute] long id)
+        {
+            var existiongRequest = await _requestRepository.GetRequestByChatIdAsync(id);
+            if (existiongRequest != null &&
+                existiongRequest.RequestType != null &&
+                existiongRequest.Source != null &&
+                existiongRequest.Destination != null &&
+                existiongRequest.Description != null)
+            {
+                return await _requestRepository.SuggestAsync(existiongRequest);
+            }
+            throw new Exception("Method not allowed");
+        }
     }
 }
