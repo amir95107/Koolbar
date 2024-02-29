@@ -45,7 +45,7 @@ namespace KoolbarTelegramBot
 
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            if (update.ChannelPost != null)
+            if (update.ChannelPost != null || update.MyChatMember != null)
                 return;
             // Only process Message updates
             #region Check if user has username
