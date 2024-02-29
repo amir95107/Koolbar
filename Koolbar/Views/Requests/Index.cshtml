@@ -1,0 +1,130 @@
+﻿@using Koolbar.Dtos
+@model IEnumerable<RequestDto>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Requests</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-outline-success">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                index
+            </th>
+            <th>
+                Username
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.RequestType)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Description)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Source)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Destination)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.FlightDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LimitDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.RequestStatus)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            int c = 1;
+        }
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @c
+                </td>
+                <td>
+                    @item.Username
+                </td>
+                <td>
+                    @item.RequestType?.ToString()
+                </td>
+                <td>
+                    @item.Description
+                </td>
+                <td>
+                    @item.Source
+                </td>
+                <td>
+                    @item.Destination
+                </td>
+                <td>
+                    @item.FlightDate?.ToString("yyyy-MM-dd")
+                </td>
+                <td>
+                    @item.LimitDate?.ToString("yyyy-MM-dd")
+                </td>
+                <td>
+                    @item.RequestStatus.ToString()
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">Delete</a>
+                </td>
+            </tr>
+            c++;
+        }
+    </tbody>
+</table>
+@{
+    int currentPage = !string.IsNullOrEmpty(Context.Request.Query["p"]) ? int.Parse(Context.Request.Query["p"]) : 1;
+}
+
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        <li class="page-item @(currentPage == 1 ?"disabled":"")">
+            <a class="page-link" href="/requests?p=@(currentPage-1)" tabindex="-1">Previous</a>
+        </li>
+
+        @for (int i = 0; i < ViewBag.PageCount; i++)
+        {
+            <li class="page-item @(i==currentPage-1?"active":"")">
+                <a class="page-link " href="/requests?p=@(i + 1)">@(i + 1)</a>
+                @if (i == currentPage-1)
+                {
+                    <span class="sr-only">(current)</span>
+                }
+            </li>
+        }
+        <li class="page-item @(currentPage == ViewBag.PageCount ?"disabled":"")">
+            <a class="page-link" href="/requests?p=@(currentPage+1)">Next</a>
+        </li>
+
+    </ul>
+</nav>
+
+                <style>
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        -webkit-clip-path: inset(50%);
+        clip-path: inset(50%);
+        border: 0;
+    }
+                </style>

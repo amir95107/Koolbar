@@ -51,5 +51,11 @@ namespace Koolbar.Services
 
         public virtual async Task<List<TEntity>> GetAllAsync(int skip, int take)
             => await Entities.Skip(skip).Take(take).ToListAsync();
+
+        public async Task<bool> ExistsAsync(TKey id)
+            => await FindAsync(id) != null;
+
+        public async Task<int> CountAsync()
+            => await Entities.CountAsync();
     }
 }

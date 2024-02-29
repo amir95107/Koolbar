@@ -1,28 +1,19 @@
 ﻿using Datalayer.Enumerations;
-using Datalayer.Migrations;
 using Koolbar.Dtos;
 using KoolbarTelegramBot.HttpClientProvider;
-using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KoolbarTelegramBot
 {
     public class BotEngine
     {
         private readonly TelegramBotClient _botClient;
-        private static RequestStatus _requestStatus = RequestStatus.New;
-        private static string? _requestType;
-        private static string? Username;
-        private static string? _description;
-        private static string? _source;
-        private static string? _destination;
-        private static DateTime? _flightDate;
+        private static Dictionary<string, RequestDto> Requests = new Dictionary<string, RequestDto>();
 
         public BotEngine(TelegramBotClient botClient)
         {
@@ -54,8 +45,21 @@ namespace KoolbarTelegramBot
 
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
+            if (update.ChannelPost != null)
+                return;
             // Only process Message updates
+            #region Check if user has username
+            var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, update.Message != null ? update.Message.Chat.Id:update.CallbackQuery.From.Id);
 
+            if (string.IsNullOrWhiteSpace(userChannelsStatus.User.Username))
+            {
+                var txt = "لطفا برای استفاده از خدمات بات، با مراجعه به تنظیمات تلگرام، Username خود را وارد کنید." + "\n\n";
+                await _botClient.SendTextMessageAsync(update.Message.Chat.Id, txt);
+
+                return;
+            }
+            var Username = update.Message != null ? update.Message.Chat.Username : update.CallbackQuery.From.Username;
+            #endregion
 
             if (update.CallbackQuery is not null)
             {
@@ -66,7 +70,7 @@ namespace KoolbarTelegramBot
                     switch (queryType)
                     {
                         case "type":
-                            await HandleAddTypeCallbackAsync(update.CallbackQuery.From.Id, update.CallbackQuery);
+                            await HandleAddTypeCallbackAsync(update.CallbackQuery.From.Id, update.CallbackQuery, Username);
                             break;
 
                         case "description":
@@ -87,7 +91,7 @@ namespace KoolbarTelegramBot
                 return;
             }
 
-            Username = update.Message.Chat.Username;
+
 
             var text = message.Text;
 
@@ -96,37 +100,46 @@ namespace KoolbarTelegramBot
                 return;
             }
 
-            switch (_requestStatus)
+            if (Requests.Count == 0 || !Requests.Keys.Any(x => x == Username))
             {
-                case RequestStatus.TypeDeclared:
-                    if (message.Text.ToLower().StartsWith("s:"))
-                    {
-                        await HandleAddSourceCallbackAsync(update.Message.Chat.Id, text);
-                    }
-                    else
-                    {
-                        await HandleSearchSourceCallbackAsync(update.Message.Chat.Id, text);
-                    }
-                    break;
+                var request = await ApiCall.GetAsync<RequestDto>($"requests/{update.Message.Chat.Id}");
+                Requests[Username] = request;
+            }
 
-                case RequestStatus.SourceDeclared:
-                    if (message.Text.ToLower().StartsWith("s:"))
-                    {
-                        await HandleAddDestionationCallbackAsync(update.Message.Chat.Id, text);
-                    }
-                    else
-                    {
-                        await HandleSearchDestionationCallbackAsync(update.Message.Chat.Id, text);
-                    }
-                    break;
+            if (Requests[Username] != null)
+            {
+                switch (Requests[Username].RequestStatus)
+                {
+                    case RequestStatus.TypeDeclared:
+                        if (message.Text.ToLower().StartsWith("s:"))
+                        {
+                            await HandleAddSourceCallbackAsync(update.Message.Chat.Id, text, Username);
+                        }
+                        else
+                        {
+                            await HandleSearchSourceCallbackAsync(update.Message.Chat.Id, text);
+                        }
+                        break;
 
-                case RequestStatus.DestinationDeclared:
-                    await HandleAddDescriptionCallbackAsync(update.Message.Chat.Id, text);
-                    break;
+                    case RequestStatus.SourceDeclared:
+                        if (message.Text.ToLower().StartsWith("d:"))
+                        {
+                            await HandleAddDestionationCallbackAsync(update.Message.Chat.Id, text, Username);
+                        }
+                        else
+                        {
+                            await HandleSearchDestionationCallbackAsync(update.Message.Chat.Id, text, Username);
+                        }
+                        break;
 
-                case RequestStatus.DescriptionDeclared:
-                    await HandleAddFlightDateCallbackAsync(update.Message.Chat.Id, text);
-                    break;
+                    case RequestStatus.DestinationDeclared:
+                        await HandleAddDescriptionCallbackAsync(update.Message.Chat.Id, text, Username);
+                        break;
+
+                    case RequestStatus.DescriptionDeclared:
+                        await HandleAddFlightDateCallbackAsync(update.Message.Chat.Id, text, Username);
+                        break;
+                }
             }
 
 
@@ -144,195 +157,6 @@ namespace KoolbarTelegramBot
 
             // Only process text messages
             //await _botClient.SendTextMessageAsync(message.Chat.Id, $"Thanks for your message {message.Chat.Username}");
-        }
-
-
-        int messageId = 0;
-        private async Task HandleAddTypeCallbackAsync(long chatid, CallbackQuery callback)
-        {
-            try
-            {
-                var data = callback.Data.Split('-')[1];
-                var a = await ApiCall.PostAsync("requests/type", new RequestDto
-                {
-                    ChatId = chatid,
-                    RequestType = Enum.Parse<RequestType>(data),
-                });
-                var message = await _botClient.SendTextMessageAsync(chatid, "لطفا مبدا خود را جستجو کنید:");
-                messageId = message.MessageId;
-                _requestStatus = RequestStatus.TypeDeclared;
-                _requestType = Enum.Parse<RequestType>(data) == RequestType.FreightOwner ? "بار دار" : "مسافر";
-
-            }
-            catch (Exception ex)
-            {
-
-                await _botClient.SendTextMessageAsync(chatid, ex.Message);
-                return;
-            }
-        }
-
-        private async Task HandleSearchSourceCallbackAsync(long id, string source)
-        {
-            var cities = await ApiCall.GetAsync<List<CityDto>>($"states/search/{source}");
-
-            ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities,"s");
-
-            await _botClient.SendTextMessageAsync(id, "لطفا از بین شهرهای زیر شهر مبدا خود را انتخاب کنید:", replyMarkup: x, replyToMessageId:messageId);
-        }
-
-        private async Task HandleSearchDestionationCallbackAsync(long id, string source)
-        {
-            var cities = await ApiCall.GetAsync<List<CityDto>>($"states/search/{source}");
-
-            ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "d");
-
-            await _botClient.SendTextMessageAsync(id, "لطفا از بین شهرهای زیر شهر مقصد خود را انتخاب کنید:", replyMarkup: x, replyToMessageId: messageId);
-        }
-
-
-        private static ReplyKeyboardMarkup GenerateKeyboardButtonForCities(List<CityDto> cities, string sord)
-        {
-            var buttons = new List<List<KeyboardButton>>();
-            var buttonsfour = new List<KeyboardButton>();
-            for (int i = 0; i < cities.Count; i++)
-            {
-                var city = cities[i];
-                buttonsfour.Add(new KeyboardButton($"{sord}:{city.Title}"));
-                if (cities.Count >= 4 && i % 4 == 3 || cities.Count < 4 && i == cities.Count - 1)
-                {
-                    buttons.Add(buttonsfour);
-                    buttonsfour = new List<KeyboardButton>();
-                }
-            }
-
-            ReplyKeyboardMarkup x = new ReplyKeyboardMarkup(buttons);
-            return x;
-        }
-
-        private async Task HandleAddSourceCallbackAsync(long id, string source)
-        {
-            await ApiCall.PostAsync("requests/source", new RequestDto
-            {
-                ChatId = id,
-                Source = source.Split("s:")[1],
-            });
-
-            _source = source;
-
-            _requestStatus = RequestStatus.SourceDeclared;
-
-
-
-            await _botClient.SendTextMessageAsync(id, "لطفا مقصد خود را وارد کنید:");
-        }
-
-        private async Task HandleAddDestionationCallbackAsync(long id, string destination)
-        {
-            await ApiCall.PostAsync("requests/destination", new RequestDto
-            {
-                ChatId = id,
-                Destination = destination.Split("d:")[1],
-            });
-
-            _destination = destination;
-
-            _requestStatus = RequestStatus.DestinationDeclared;
-
-            await _botClient.SendTextMessageAsync(id, "لطفا توضیحات خود را وارد کنید:");
-        }
-
-        private async Task HandleAddDescriptionCallbackAsync(long id, string message)
-        {
-            await ApiCall.PostAsync("requests/description", new RequestDto
-            {
-                ChatId = id,
-                Description = message,
-            });
-
-            _description = message;
-
-            _requestStatus = RequestStatus.DescriptionDeclared;
-
-            var text = (Username != null ? $"<a href='http://t.me/{Username}'>@{Username}</a>" : "کاربر") + "\n"
-                + $"#{_requestType}" + "\n"
-                + $"مبدا: {_source} " + "\n"
-                + $"مقصد: {_destination}" + "\n"
-                + $"<b>{_description}</b>";
-
-            if (_requestType == "مسافر")
-            {
-                text = $"لطفا تاریخ پرواز را مشخص کنید." + "\n"
-                    + $"فرمت تاریخ: yyyy/mm/dd"
-                    + $"مثال: 2023/12/30";
-
-                await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html);
-                return;
-            }
-
-            await GenerateSuggestedText(id, 20);
-
-
-            InlineKeyboardButton urlButton = new InlineKeyboardButton("پیام به کاربر");
-            urlButton.Url = $"https://t.me/{Username}";
-            InlineKeyboardMarkup markup = new InlineKeyboardMarkup(urlButton);
-            await _botClient.SendTextMessageAsync(-1001974756992, text, replyMarkup: markup, parseMode: ParseMode.Html);
-        }
-
-
-
-        private async Task HandleAddFlightDateCallbackAsync(long id, string date)
-        {
-            var convertedDate = DateTime.Now;
-            try
-            {
-                convertedDate = DateTime.Parse(date);
-            }
-            catch (Exception ex)
-            {
-                await _botClient.SendTextMessageAsync(id, "فرمت تاریخ وارد شده صحیح نیست:");
-            }
-
-            await ApiCall.PostAsync("requests/flightdate", new RequestDto
-            {
-                ChatId = id,
-                FlightDate = convertedDate,
-            });
-
-            _flightDate = convertedDate;
-
-            _requestStatus = RequestStatus.FlightDateDeclared;
-
-            var text = (Username != null ? $"<a href='http://t.me/{Username}'>{Username}</a>" : "کاربر") + "\n"
-                + $"#{_requestType}" + "\n \n"
-                + $"مبدا: {_source} " + "\n"
-                + $"مقصد: {_destination}" + "\n"
-                + $"تاریخ سفر: {convertedDate.ToString("yyyy/MM/dd")}" + "\n"
-                + $"#{_description}";
-
-
-            InlineKeyboardButton urlButton = new InlineKeyboardButton("پیام به کاربر");
-            urlButton.Url = $"https://t.me/{Username}";
-            InlineKeyboardMarkup markup = new InlineKeyboardMarkup(urlButton);
-            await _botClient.SendTextMessageAsync(-1001974756992, text, replyMarkup: markup, parseMode: ParseMode.Html);
-            await GenerateSuggestedText(id, 10);
-        }
-
-        private async Task<string> GenerateSuggestedText(long id, int requestType)
-        {
-            var list = await ApiCall.GetAsync<List<RequestDto>>($"requests/suggest/{id}");
-
-            var text = list.Count == 0 ? "موردی جهت نمایش وجود ندارد!" : string.Empty;
-            int num = 0;
-            foreach (var item in list)
-            {
-                var t = $"مبدا: {item.Source} \n مقصد: {item.Destination} \n توضیحات: {item.Description} \n تاریخ پرواز: {item.FlightDate} \n  <a href='https://t.me/{item.Username}'><b>@{item.Username}</b>></a>\n";
-                t += num == list.Count - 1 ? "------------------------------------ \n\n" : "";
-                num++;
-            }
-
-            await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html);
-            return "";
         }
 
 
@@ -374,24 +198,61 @@ namespace KoolbarTelegramBot
 
         private async Task HandleCreateCommands(long id, string _type = "")
         {
-            var a = await _botClient.GetChatMemberAsync(-1001974756992, id);
-
-            if (a.Status == ChatMemberStatus.Left)
+            #region Check if exists in channel(s)
+            var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, id);
+            if (userChannelsStatus.Status is not ChatMemberStatus.Member and not ChatMemberStatus.Creator and not ChatMemberStatus.Administrator)
             {
+                var text = "لطفا برای استفاده از خدمات بات، کانال(ها‌ی) زیر را دنبال کنید." + "\n\n" +
+                            "<a href='https://t.me/koolbar_international'>@koolbar_international</a>";
+                await _botClient.SendTextMessageAsync(id, text,parseMode: ParseMode.Html);
 
+                return;
             }
+            #endregion
+
+            #region Check if user has username
+            if (string.IsNullOrWhiteSpace(userChannelsStatus.User.Username))
+            {
+                var text = "لطفا برای استفاده از خدمات بات، با مراجعه به تنظیمات تلگرام، Username خود را وارد کنید." + "\n\n";
+                await _botClient.SendTextMessageAsync(id, text);
+
+                return;
+            }
+            #endregion
 
             try
             {
-                await ApiCall.PostAsync("requests", new RequestDto
+                var request = await ApiCall.PostAsync("requests", new RequestDto
                 {
-                    ChatId = id
+                    ChatId = id,
+                    Username = userChannelsStatus.User.Username
                 });
+
+                Requests[userChannelsStatus.User.Username] = request;
+
+                switch (request.RequestStatus)
+                {
+                    case RequestStatus.TypeDeclared:
+                        await _botClient.SendTextMessageAsync(id, "لطفا مبدا خود را جستجو کنید:");
+                        return;
+
+                    case RequestStatus.SourceDeclared:
+                        await _botClient.SendTextMessageAsync(id, "لطفا مقصد خود را جستجو کنید:");
+                        return;
+
+                    case RequestStatus.DestinationDeclared:
+                        await _botClient.SendTextMessageAsync(id, "لطفا توضیحات خود را وارد کنید:");
+                        return;
+
+                    case RequestStatus.DescriptionDeclared:
+                        await HandleContinueAddDateAsync(id,request.RequestType.Value);
+                        return;
+                }
+
             }
             catch (Exception ex)
             {
-
-                await _botClient.SendTextMessageAsync(id, ex.Message);
+                await _botClient.SendTextMessageAsync(id, "خطا در ثبت اولیه درخواست.");
                 return;
             }
 
@@ -407,16 +268,217 @@ namespace KoolbarTelegramBot
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
 
             // Send message!
+            await _botClient.SendTextMessageAsync(id, "نوع درخواست خود را مشخص کنید.", replyMarkup: inline);
+        }
+
+        
+
+        private async Task HandleAddTypeCallbackAsync(long chatid, CallbackQuery callback, string username)
+        {
             try
             {
-                await _botClient.SendTextMessageAsync(id, "نوع درخواست خود را مشخص کنید.", replyMarkup: inline);
+                var data = callback.Data.Split('-')[1];
+                await ApiCall.PostAsync("requests/type", new RequestDto
+                {
+                    ChatId = chatid,
+                    RequestType = Enum.Parse<RequestType>(data),
+                });
+                var message = await _botClient.SendTextMessageAsync(chatid, "لطفا مبدا خود را جستجو کنید:");
+
+                if (Requests.Count == 0 || !Requests.Keys.Any(x => x == username))
+                {
+                    var request = await ApiCall.GetAsync<RequestDto>($"requests/{chatid}");
+                    Requests[username] = request;
+                }
+
+                Requests[username].RequestStatus = RequestStatus.TypeDeclared;
+                Requests[username].RequestType = Enum.Parse<RequestType>(data);
+
             }
             catch (Exception ex)
             {
 
-                throw;
+                await _botClient.SendTextMessageAsync(chatid, ex.Message);
+                return;
             }
         }
+
+        private async Task HandleSearchSourceCallbackAsync(long id, string source)
+        {
+            var cities = await ApiCall.GetAsync<List<CityDto>>($"states/search/{source}");
+
+            ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "s");
+
+            var text = cities.Count > 0 ? "لطفا از بین شهرهای زیر شهر مقصد خود را انتخاب کنید:" : "موردی یافت نشد. لطفا مجددا تلاش کنید.";
+
+            await _botClient.SendTextMessageAsync(id, text, replyMarkup: x);
+        }
+
+        private async Task HandleSearchDestionationCallbackAsync(long id, string source, string username)
+        {
+            var cities = await ApiCall.GetAsync<List<CityDto>>($"states/search/{source}");
+
+            ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "d");
+
+            var text = cities.Count > 0 ? "لطفا از بین شهرهای زیر شهر مقصد خود را انتخاب کنید:" : "موردی یافت نشد. لطفا مجددا تلاش کنید.";
+
+            await _botClient.SendTextMessageAsync(id, text, replyMarkup: x);
+        }
+
+        private static ReplyKeyboardMarkup GenerateKeyboardButtonForCities(List<CityDto> cities, string sord)
+        {
+            int culomn = 3;
+            var buttons = new List<List<KeyboardButton>>();
+            var buttonsfour = new List<KeyboardButton>();
+            for (int i = 0; i < cities.Count; i++)
+            {
+                var city = cities[i];
+                buttonsfour.Add(new KeyboardButton($"{sord}:{city.Title}"));
+                if (cities.Count >= culomn && i % culomn == culomn-1 || cities.Count < culomn && i == cities.Count - 1)
+                {
+                    buttons.Add(buttonsfour);
+                    buttonsfour = new List<KeyboardButton>();
+                }
+            }
+
+            ReplyKeyboardMarkup x = new ReplyKeyboardMarkup(buttons);
+            return x;
+        }
+
+        private async Task HandleAddSourceCallbackAsync(long id, string source, string username)
+        {
+            await ApiCall.PostAsync("requests/source", new RequestDto
+            {
+                ChatId = id,
+                Source = source.Split("s:")[1],
+            });
+
+            Requests[username].Source = source.Split("s:")[1];
+            Requests[username].RequestStatus = RequestStatus.SourceDeclared;
+
+            await _botClient.SendTextMessageAsync(id, "لطفا مقصد خود را جستجو کنید:");
+        }
+
+        private async Task HandleAddDestionationCallbackAsync(long id, string destination, string username)
+        {
+            await ApiCall.PostAsync("requests/destination", new RequestDto
+            {
+                ChatId = id,
+                Destination = destination.Split("d:")[1],
+            });
+
+            Requests[username].Destination = destination.Split("d:")[1];
+            Requests[username].RequestStatus = RequestStatus.DestinationDeclared;
+
+            await _botClient.SendTextMessageAsync(id, "لطفا توضیحات خود را وارد کنید:");
+        }
+
+        private async Task HandleContinueAddDateAsync(long id, RequestType requestType)
+        {
+            var text = string.Empty;
+            if(requestType == RequestType.Passenger)
+            {
+                text = $"لطفا تاریخ پرواز را مشخص کنید." + "\n"
+                    + $"فرمت تاریخ: yyyy/mm/dd"
+                + $"مثال: 2023/12/30";
+
+                await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html);
+            }
+        }
+
+        private async Task HandleAddDescriptionCallbackAsync(long id, string message, string username)
+        {
+            await ApiCall.PostAsync("requests/description", new RequestDto
+            {
+                ChatId = id,
+                Description = message,
+            });
+
+            Requests[username].Description = message;
+            Requests[username].RequestStatus = RequestStatus.DescriptionDeclared;
+
+            var reqTypeText = Requests[username].RequestType == RequestType.Passenger ? "مسافر" : "دارای بار";
+
+            var text = $"<a href='http://t.me/{username}'>@{username}</a> \n"
+                + $"#{reqTypeText}" + "\n"
+                + $"مبدا: {Requests[username].Source} " + "\n"
+                + $"مقصد: {Requests[username].Destination}" + "\n"
+                + $"<b>{Requests[username].Description}</b>";
+
+            if (reqTypeText == "مسافر")
+            {
+                text = $"لطفا تاریخ پرواز را مشخص کنید." + "\n"
+                    + $"فرمت تاریخ: yyyy/mm/dd"
+                    + $"مثال: 2023/12/30";
+
+                await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html);
+                return;
+            }
+
+            await GenerateSuggestedText(id, 20);
+
+
+            InlineKeyboardButton urlButton = new InlineKeyboardButton("پیام به کاربر");
+            urlButton.Url = $"https://t.me/{username}";
+            InlineKeyboardMarkup markup = new InlineKeyboardMarkup(urlButton);
+            await _botClient.SendTextMessageAsync(-1001974756992, text, replyMarkup: markup, parseMode: ParseMode.Html);
+        }
+
+        private async Task HandleAddFlightDateCallbackAsync(long id, string date, string username)
+        {
+            var convertedDate = DateTime.Now;
+            try
+            {
+                convertedDate = DateTime.Parse(date);
+            }
+            catch (Exception ex)
+            {
+                await _botClient.SendTextMessageAsync(id, "فرمت تاریخ وارد شده صحیح نیست:");
+            }
+
+            await ApiCall.PostAsync("requests/flightdate", new RequestDto
+            {
+                ChatId = id,
+                FlightDate = convertedDate,
+            });
+
+            Requests[username].FlightDate = convertedDate;
+            Requests[username].RequestStatus = RequestStatus.DestinationDeclared;
+
+            var text = $"<a href='http://t.me/{username}'>@{username}</a> \n"
+                + $"#{Requests[username].RequestType}" + "\n \n"
+                + $"مبدا: {Requests[username].Source} " + "\n"
+                + $"مقصد: {Requests[username].Destination}" + "\n"
+                + $"تاریخ سفر: {convertedDate.ToString("yyyy/MM/dd")}" + "\n"
+                + $"{Requests[username].Description}";
+
+
+            InlineKeyboardButton urlButton = new InlineKeyboardButton("پیام به کاربر");
+            urlButton.Url = $"https://t.me/{username}";
+            InlineKeyboardMarkup markup = new InlineKeyboardMarkup(urlButton);
+            await _botClient.SendTextMessageAsync(-1001974756992, text, replyMarkup: markup, parseMode: ParseMode.Html);
+            await GenerateSuggestedText(id, 10);
+        }
+
+        private async Task<string> GenerateSuggestedText(long id, int requestType)
+        {
+            var list = await ApiCall.GetAsync<List<RequestDto>>($"requests/suggest/{id}");
+
+            var text = list.Count == 0 ? "موردی جهت نمایش وجود ندارد!" : string.Empty;
+            int num = 0;
+            foreach (var item in list)
+            {
+                var t = $"مبدا: {item.Source} \n مقصد: {item.Destination} \n توضیحات: {item.Description} \n تاریخ پرواز: {item.FlightDate} \n  <a href='https://t.me/{item.Username}'><b>@{item.Username}</b>></a>\n";
+                t += num == list.Count - 1 ? "------------------------------------ \n\n" : "";
+                num++;
+            }
+
+            await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html);
+            return "";
+        }
+
+
+        
 
         private Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {

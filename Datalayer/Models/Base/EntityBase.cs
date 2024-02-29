@@ -1,5 +1,4 @@
-﻿using DataLayer.Models.Events;
-using System.ComponentModel.DataAnnotations;
+﻿using DataLayer.Events;
 
 namespace DataLayer.Models.Base
 {

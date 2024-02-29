@@ -68,7 +68,7 @@ _client.BaseAddress = new Uri("http://localhost:5000/api/");
 
                     return response;
                 }
-                throw new Exception(request.RequestMessage.Content.ReadAsStringAsync().Result);
+                throw new Exception(await request.RequestMessage.Content.ReadAsStringAsync());
             }
             catch (Exception ex)
             {

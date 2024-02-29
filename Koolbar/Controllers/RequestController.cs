@@ -24,45 +24,65 @@ namespace Koolbar.Controllers
             UserManager = userManager;
         }
 
+        [HttpGet("{chatId}")]
+        public async Task<RequestDto> GetCurrentRequest(long chatId)
+        {
+            var existingRequest = await _requestRepository.GetRequestByChatIdAsync(chatId);
+            
+            if (existingRequest == null)
+                return null;
+
+            return new RequestDto
+            {
+                RequestStatus = existingRequest.RequestStatus,
+                Description = existingRequest.Description,
+                Destination = existingRequest.Destination,
+                FlightDate = existingRequest.FlightDate,
+                RequestType = existingRequest.RequestType,
+                Source = existingRequest.Source,
+                UserId = existingRequest.UserId
+            };
+        }
+
         // GET: api/<RequestsController>
         [HttpPost]
         public async Task<ActionResult<RequestDto>> AddRequest([FromBody] RequestDto request)
         {
-            var user = await UserManager.FindByNameAsync(request.ChatId.ToString());
+            var user = await UserManager.FindByNameAsync(request.Username.ToUpper());
 
             if (user is null)
             {
                 var u = await UserManager.CreateAsync(new User
                 {
-                    UserName = request.ChatId.ToString(),
+                    UserName = request.Username,
                     ChatId = request.ChatId
                 });
 
                 user = await UserManager.FindByNameAsync(request.ChatId.ToString());
             }
 
-            var openRequestExists = await _requestRepository.OpenRequestExistsAsync(user.Id);
+            var existingRequest = await _requestRepository.GetRequestByChatIdAsync(request.ChatId);
 
-            if (!openRequestExists)
+            if (existingRequest is null)
                 await _requestRepository.AddAsync(new Request
                 {
                     UserId = user.Id
                 });
             else
-                return StatusCode(422, new RequestDto
+                return new RequestDto
                 {
-                    ErrorMessage = "درخواست تکمیل نشده دیگری وجود دارد."
-                });
+                    RequestStatus = existingRequest.RequestStatus,
+                    ChatId = request.ChatId,
+                    Username = request.Username,    
+                    Description = existingRequest.Description,
+                    Destination = existingRequest.Destination,
+                    FlightDate = existingRequest.FlightDate,
+                    RequestType = existingRequest.RequestType,
+                    Source = existingRequest.Source,
+                    UserId = existingRequest.UserId
+                };
 
-            try
-            {
-                await _requestRepository.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-
-                throw;
-            }
+            await _requestRepository.SaveChangesAsync();
 
             return request;
         }

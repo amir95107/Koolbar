@@ -1,4 +1,6 @@
 ﻿using Datalayer.Models;
+using DataLayer.Models.Base;
+using Koolbar.Dtos;
 
 namespace Koolbar.Repositories
 {
@@ -8,5 +10,7 @@ namespace Koolbar.Repositories
         Task<Request> GetRequestByChatIdAsync(long chatid);
         Task<bool> OpenRequestExistsAsync(Guid userId);
         Task<List<Request>> SuggestAsync(Request request);
+        Task<List<RequestDto>> GetAllRequestsAsync(int skip, int take);
+
     }
 }

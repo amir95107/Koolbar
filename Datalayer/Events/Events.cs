@@ -1,4 +1,4 @@
-﻿namespace DataLayer.Models.Events
+﻿namespace DataLayer.Events
 {
     public enum EventType
     {
