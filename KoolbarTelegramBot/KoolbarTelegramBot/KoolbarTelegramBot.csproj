@@ -16,4 +16,8 @@
     <ProjectReference Include="..\..\Datalayer\Datalayer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Calender\" />
+  </ItemGroup>
+
 </Project>

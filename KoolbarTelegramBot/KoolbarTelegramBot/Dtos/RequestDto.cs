@@ -14,5 +14,8 @@ namespace Koolbar.Dtos
         public string? Destination { get; set; }        
         public DateTime? FlightDate { get; set; }
         public DateTime? LimitDate { get; set; }
+        public string? FlightMonth { get; set; }
+        public int? FlightDay { get; set; }
+        public int? MessageId {  get; set; }
     }
 }

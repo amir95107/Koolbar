@@ -2,6 +2,7 @@
 using Datalayer.Models;
 using Koolbar.Dtos;
 using Koolbar.Repositories;
+using KoolbarTelegramBot.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -80,9 +81,27 @@ namespace Koolbar.Controllers
                 };
                 await _requestRepository.AddAsync(req);
                 await _requestRepository.SaveChangesAsync();
+
+                var message = GenerateTextMessage(request);
+
+                await Notification.SendMessage(message);
+
                 return RedirectToAction("Index");
             }
             return View(request);
+        }
+
+        private string GenerateTextMessage(RequestDto req)
+        {
+            var typeTxt = req.RequestType == RequestType.Passenger ? "#مسافر" : "#بار";
+            var date = req.RequestType == RequestType.Passenger ? req.FlightDate.ToString() + "\n" : "";
+
+            return $"<a href='https://t.me/{req.Username}'>@{req.Username}</a> \n" +
+                $"{typeTxt}\n" +
+                $"مبدا: {req.Source}\n" +
+                $"مقصد: {req.Destination}\n" +
+                $"{date}" +
+                $"{req.Description}";
         }
 
         public async Task<IActionResult> Edit(Guid? id)
