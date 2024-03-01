@@ -118,7 +118,7 @@ namespace KoolbarTelegramBot
             if (Requests.Count == 0 || !Requests.Keys.Any(x => x == Username))
             {
                 var request = await ApiCall.GetAsync<RequestDto>($"requests/{update.Message.Chat.Id}");
-                if (request == null || (request.RequestType == RequestType.Passenger && request.RequestStatus < RequestStatus.FlightDateDeclared) || 
+                if (request.RequestType == null || request == null || (request.RequestType == RequestType.Passenger && request.RequestStatus < RequestStatus.FlightDateDeclared) || 
                     request.RequestType == RequestType.FreightOwner && request.RequestStatus < RequestStatus.DescriptionDeclared)
                 {
                     Requests[Username] = request;
