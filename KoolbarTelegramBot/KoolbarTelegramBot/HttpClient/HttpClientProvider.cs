@@ -19,20 +19,25 @@ _client.BaseAddress = new Uri("http://localhost:5000/api/");
         }
         public static async Task<T> GetAsync<T>(string url) where T : class
         {
-            var request = await _client.GetAsync(url);
+            
             try
             {
+                var request = await _client.GetAsync(url);
                 if (request.IsSuccessStatusCode)
                 {
                     return JsonConvert.DeserializeObject<T>(await request.Content.ReadAsStringAsync());
                 }
+                else
+                {
+                    throw new Exception($"خطا در سرویس {url}");
+                }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
 
-                throw ex;
+                throw new Exception($"خطا در سرویس {url}");
             }
-            throw new Exception(request.RequestMessage.Content.ReadAsStringAsync().Result);
+            
         }
 
         public static async Task<T> PostAsync<T, U>(string url, U u)
@@ -48,10 +53,9 @@ _client.BaseAddress = new Uri("http://localhost:5000/api/");
                 }
                 throw new Exception(request.RequestMessage.Content.ReadAsStringAsync().Result);
             }
-            catch (Exception ex)
+            catch
             {
-
-                throw ex;
+                throw new Exception($"خطا در سرویس {url}");
             }
         }
 
@@ -70,10 +74,10 @@ _client.BaseAddress = new Uri("http://localhost:5000/api/");
                 }
                 throw new Exception(await request.RequestMessage.Content.ReadAsStringAsync());
             }
-            catch (Exception ex)
+            catch
             {
 
-                throw ex;
+                throw new Exception($"خطا در سرویس {url}");
             }
         }
     }

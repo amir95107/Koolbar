@@ -15,6 +15,7 @@ namespace Datalayer.Models
         public DateTime? LimitDate { get; set; }
 
         public RequestStatus RequestStatus { get; set; } = RequestStatus.New;
+        public bool IsCompleted { get; set; }
 
 
         public virtual User User { get; set; }

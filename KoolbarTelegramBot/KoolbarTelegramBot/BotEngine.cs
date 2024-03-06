@@ -47,19 +47,53 @@ namespace KoolbarTelegramBot
         {
             if (update.ChannelPost != null || update.MyChatMember != null)
                 return;
+
+            long chatId;
+            if (update.CallbackQuery != null)
+            {
+                chatId = update.CallbackQuery.Message.Chat.Id;
+            }
+            else if (update.Message != null)
+            {
+                chatId = update.Message.Chat.Id;
+            }
+            else if (update.MyChatMember != null)
+            {
+                chatId = update.MyChatMember.From.Id;
+            }
+            else if (update.ChannelPost != null)
+            {
+                chatId = update.ChannelPost.From.Id;
+            }
+            else
+            {
+                chatId = 0;
+            }
+
+            
+
             // Only process Message updates
             #region Check if user has username
-            var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, update.Message != null ? update.Message.Chat.Id : update.CallbackQuery.From.Id);
+            var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, chatId);
 
             if (string.IsNullOrWhiteSpace(userChannelsStatus.User.Username))
             {
                 var txt = "لطفا برای استفاده از خدمات بات، با مراجعه به تنظیمات تلگرام، Username خود را وارد کنید." + "\n\n";
-                await _botClient.SendTextMessageAsync(update.Message.Chat.Id, txt);
+                await _botClient.SendTextMessageAsync(chatId, txt);
 
                 return;
             }
             var Username = update.Message != null ? update.Message.Chat.Username : update.CallbackQuery.From.Username;
             #endregion
+
+            if (Requests.Count == 0 || !Requests.Keys.Any(x => x == Username))
+            {
+                var request = await ApiCall.GetAsync<RequestDto>($"requests/{chatId}");
+                if (request == null || request.RequestType == null || !request.IsCompleted)
+                {
+                    Requests[Username] = request;
+                }
+            }
 
             if (update.CallbackQuery is not null)
             {
@@ -70,7 +104,7 @@ namespace KoolbarTelegramBot
                     switch (queryType)
                     {
                         case "type":
-                            await HandleAddTypeCallbackAsync(update.CallbackQuery.From.Id, update.CallbackQuery, Username);
+                            await HandleAddTypeCallbackAsync(chatId, update.CallbackQuery, Username);
                             break;
 
                         case "description":
@@ -82,14 +116,14 @@ namespace KoolbarTelegramBot
                         var month = queryType.Split("_")[2];
                         Requests[Username].FlightMonth = month;
                         var days = GetDayPickerInlineKeyboard();
-                        await _botClient.EditMessageReplyMarkupAsync(new ChatId(update.CallbackQuery.Message.Chat.Id), Requests[Username].MessageId.Value, replyMarkup: days);
+                        await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), Requests[Username].MessageId.Value, replyMarkup: days);
                     }
                     if (queryType.StartsWith("datepicker_day_"))
                     {
                         var day = queryType.Split("_")[2];
                         Requests[Username].FlightDay = int.Parse(day);
 
-                        await HandleAddFlightDateCallbackAsync(update.CallbackQuery.Message.Chat.Id, Requests[Username].FlightMonth, int.Parse(day), Username);
+                        await HandleAddFlightDateCallbackAsync(chatId, Requests[Username].FlightMonth, int.Parse(day), Username);
                     }
 
 
@@ -115,15 +149,7 @@ namespace KoolbarTelegramBot
                 return;
             }
 
-            if (Requests.Count == 0 || !Requests.Keys.Any(x => x == Username))
-            {
-                var request = await ApiCall.GetAsync<RequestDto>($"requests/{update.Message.Chat.Id}");
-                if (request.RequestType == null || request == null || (request.RequestType == RequestType.Passenger && request.RequestStatus < RequestStatus.FlightDateDeclared) || 
-                    request.RequestType == RequestType.FreightOwner && request.RequestStatus < RequestStatus.DescriptionDeclared)
-                {
-                    Requests[Username] = request;
-                }
-            }
+
 
             if (Requests[Username] != null)
             {
@@ -132,31 +158,31 @@ namespace KoolbarTelegramBot
                     case RequestStatus.TypeDeclared:
                         if (message.Text.ToLower().StartsWith("s:"))
                         {
-                            await HandleAddSourceCallbackAsync(update.Message.Chat.Id, text, Username);
+                            await HandleAddSourceCallbackAsync(chatId, text, Username);
                         }
                         else
                         {
-                            await HandleSearchSourceCallbackAsync(update.Message.Chat.Id, text);
+                            await HandleSearchSourceCallbackAsync(chatId, text);
                         }
                         return;
 
                     case RequestStatus.SourceDeclared:
                         if (message.Text.ToLower().StartsWith("d:"))
                         {
-                            await HandleAddDestionationCallbackAsync(update.Message.Chat.Id, text, Username);
+                            await HandleAddDestionationCallbackAsync(chatId, text, Username);
                         }
                         else
                         {
-                            await HandleSearchDestionationCallbackAsync(update.Message.Chat.Id, text, Username);
+                            await HandleSearchDestionationCallbackAsync(chatId, text, Username);
                         }
                         return;
 
                     case RequestStatus.DestinationDeclared:
-                        await HandleAddDescriptionCallbackAsync(update.Message.Chat.Id, text, Username);
+                        await HandleAddDescriptionCallbackAsync(chatId, text, Username);
                         return;
 
                     case RequestStatus.DescriptionDeclared:
-                        await HandleContinueAddDateAsync(update.Message.Chat.Id, Requests[Username].RequestType.Value, Username);
+                        await HandleContinueAddDateAsync(chatId, Requests[Username].RequestType.Value, Username);
                         return;
                 }
             }
@@ -483,12 +509,15 @@ namespace KoolbarTelegramBot
 
             var text = list.Count == 0 ? "موردی جهت نمایش وجود ندارد!" : string.Empty;
             int num = 0;
+            var t = string.Empty;
             foreach (var item in list)
             {
-                var t = $"مبدا: {item.Source} \n مقصد: {item.Destination} \n توضیحات: {item.Description} \n تاریخ پرواز: {item.FlightDate} \n  <a href='https://t.me/{item.Username}'><b>@{item.Username}</b>></a>\n";
+                t = $"مبدا: {item.Source} \n مقصد: {item.Destination} \n توضیحات: {item.Description} \n تاریخ پرواز: {item.FlightDate} \n  <a href='https://t.me/{item.Username}'><b>@{item.Username}</b>></a>\n";
                 t += num == list.Count - 1 ? "------------------------------------ \n\n" : "";
                 num++;
             }
+            if(!string.IsNullOrEmpty(t))
+                text = t;
 
             await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html, disableWebPagePreview: true);
             return "";
@@ -520,10 +549,10 @@ namespace KoolbarTelegramBot
             for (int i = 0; i < days.Length; i++)
             {
                 var day = days[i];
-                
+
                 row.Add(InlineKeyboardButton.WithCallbackData(day, $"datepicker_day_{day}"));
 
-                if(i % 5 == 4)
+                if (i % 5 == 4)
                 {
                     buttonsList.Add(row);
                     row = new List<InlineKeyboardButton>();

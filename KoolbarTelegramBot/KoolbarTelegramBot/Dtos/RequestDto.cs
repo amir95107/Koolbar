@@ -17,5 +17,6 @@ namespace Koolbar.Dtos
         public string? FlightMonth { get; set; }
         public int? FlightDay { get; set; }
         public int? MessageId {  get; set; }
+        public bool IsCompleted { get; set; }
     }
 }

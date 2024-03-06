@@ -18,9 +18,20 @@ namespace Koolbar.Services
         }
 
         public async Task<Request> GetRequestByChatIdAsync(long chatid)
-            => await NotRemoved
-            .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.User.ChatId == chatid);
+        {
+            try
+            {
+                return await NotRemoved
+                .Include(x => x.User)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync(x => x.User.ChatId == chatid && !x.IsCompleted);
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
 
         public async Task<Request> GetRequestByUserIdAsync(Guid userid)
             => await NotRemoved
@@ -51,7 +62,7 @@ namespace Koolbar.Services
                 Username = x.User.UserName,
                 CreatedAt = x.CreatedAt
             })
-            .OrderByDescending(x=>x.CreatedAt)
+            .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
 
         public async Task<List<Request>> SuggestAsync(Request request)
@@ -61,5 +72,10 @@ namespace Koolbar.Services
             (x.Source == request.Destination || x.Destination == request.Source) &&
             (request.RequestType == RequestType.FreightOwner ? x.RequestType == RequestType.Passenger && x.FlightDate < DateTime.Now : true))
             .ToListAsync();
+
+        public async Task<Request> GetCompleteRequestByChatIdAsync(long chatid)
+            => await NotRemoved
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x => x.User.ChatId == chatid && x.IsCompleted);
     }
 }

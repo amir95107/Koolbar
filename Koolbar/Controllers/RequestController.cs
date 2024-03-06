@@ -141,6 +141,9 @@ namespace Koolbar.Controllers
             {
                 existiongRequest.Description = request.Description;
                 existiongRequest.RequestStatus = RequestStatus.DescriptionDeclared;
+                if(request.RequestType == RequestType.FreightOwner)
+                    existiongRequest.IsCompleted = true;
+
                 _requestRepository.Modify(existiongRequest);
                 await _requestRepository.SaveChangesAsync();
             }
@@ -158,6 +161,7 @@ namespace Koolbar.Controllers
             {
                 existiongRequest.FlightDate = request.FlightDate;
                 existiongRequest.RequestStatus = RequestStatus.FlightDateDeclared;
+                existiongRequest.IsCompleted = true;
                 _requestRepository.Modify(existiongRequest);
                 await _requestRepository.SaveChangesAsync();
             }
@@ -166,12 +170,8 @@ namespace Koolbar.Controllers
         [HttpGet("suggest/{id}")]
         public async Task<List<Request>> Suggest([FromRoute] long id)
         {
-            var existiongRequest = await _requestRepository.GetRequestByChatIdAsync(id);
-            if (existiongRequest != null &&
-                existiongRequest.RequestType != null &&
-                existiongRequest.Source != null &&
-                existiongRequest.Destination != null &&
-                existiongRequest.Description != null)
+            var existiongRequest = await _requestRepository.GetCompleteRequestByChatIdAsync(id);
+            if (existiongRequest != null)
             {
                 return await _requestRepository.SuggestAsync(existiongRequest);
             }
