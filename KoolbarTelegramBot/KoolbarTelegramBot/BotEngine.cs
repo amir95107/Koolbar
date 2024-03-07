@@ -45,163 +45,173 @@ namespace KoolbarTelegramBot
 
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            if (update.ChannelPost != null || update.MyChatMember != null)
-                return;
+            long chatId = 0;
+            try
+            {
+                if (update.ChannelPost != null || update.MyChatMember != null)
+                    return;
 
-            long chatId;
-            if (update.CallbackQuery != null)
-            {
-                chatId = update.CallbackQuery.Message.Chat.Id;
-            }
-            else if (update.Message != null)
-            {
-                chatId = update.Message.Chat.Id;
-            }
-            else if (update.MyChatMember != null)
-            {
-                chatId = update.MyChatMember.From.Id;
-            }
-            else if (update.ChannelPost != null)
-            {
-                chatId = update.ChannelPost.From.Id;
-            }
-            else
-            {
-                chatId = 0;
-            }
-
-            
-
-            // Only process Message updates
-            #region Check if user has username
-            var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, chatId);
-
-            if (string.IsNullOrWhiteSpace(userChannelsStatus.User.Username))
-            {
-                var txt = "لطفا برای استفاده از خدمات بات، با مراجعه به تنظیمات تلگرام، Username خود را وارد کنید." + "\n\n";
-                await _botClient.SendTextMessageAsync(chatId, txt);
-
-                return;
-            }
-            var Username = update.Message != null ? update.Message.Chat.Username : update.CallbackQuery.From.Username;
-            #endregion
-
-            if (Requests.Count == 0 || !Requests.Keys.Any(x => x == Username))
-            {
-                var request = await ApiCall.GetAsync<RequestDto>($"requests/{chatId}");
-                if (request == null || request.RequestType == null || !request.IsCompleted)
+                
+                if (update.CallbackQuery != null)
                 {
-                    Requests[Username] = request;
+                    chatId = update.CallbackQuery.Message.Chat.Id;
                 }
-            }
-
-            if (update.CallbackQuery is not null)
-            {
-
-                if (update.Type == UpdateType.CallbackQuery)
+                else if (update.Message != null)
                 {
-                    var queryType = update.CallbackQuery.Data.Split('-')[0];
-                    switch (queryType)
+                    chatId = update.Message.Chat.Id;
+                }
+                else if (update.MyChatMember != null)
+                {
+                    chatId = update.MyChatMember.From.Id;
+                }
+                else if (update.ChannelPost != null)
+                {
+                    chatId = update.ChannelPost.From.Id;
+                }
+                else
+                {
+                    chatId = 0;
+                }
+
+
+
+                // Only process Message updates
+                #region Check if user has username
+                var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, chatId);
+
+                if (string.IsNullOrWhiteSpace(userChannelsStatus.User.Username))
+                {
+                    var txt = "لطفا برای استفاده از خدمات بات، با مراجعه به تنظیمات تلگرام، Username خود را وارد کنید." + "\n\n";
+                    await _botClient.SendTextMessageAsync(chatId, txt);
+
+                    return;
+                }
+                var Username = update.Message != null ? update.Message.Chat.Username : update.CallbackQuery.From.Username;
+                #endregion
+
+                if (Requests.Count == 0 || !Requests.Keys.Any(x => x == Username))
+                {
+                    var request = await ApiCall.GetAsync<RequestDto>($"requests/{chatId}");
+                    if (request == null || request.RequestType == null || !request.IsCompleted)
                     {
-                        case "type":
-                            await HandleAddTypeCallbackAsync(chatId, update.CallbackQuery, Username);
-                            break;
-
-                        case "description":
-
-                            break;
+                        Requests[Username] = request;
                     }
-                    if (queryType.StartsWith("datepicker_month_"))
+                }
+
+                if (update.CallbackQuery is not null)
+                {
+
+                    if (update.Type == UpdateType.CallbackQuery)
                     {
-                        var month = queryType.Split("_")[2];
-                        Requests[Username].FlightMonth = month;
-                        var days = GetDayPickerInlineKeyboard();
-                        await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), Requests[Username].MessageId.Value, replyMarkup: days);
+                        var queryType = update.CallbackQuery.Data.Split('-')[0];
+                        switch (queryType)
+                        {
+                            case "type":
+                                await HandleAddTypeCallbackAsync(chatId, update.CallbackQuery, Username);
+                                break;
+
+                            case "description":
+
+                                break;
+                        }
+                        if (queryType.StartsWith("datepicker_month_"))
+                        {
+                            var month = queryType.Split("_")[2];
+                            Requests[Username].FlightMonth = month;
+                            var days = GetDayPickerInlineKeyboard();
+                            await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), Requests[Username].MessageId.Value, replyMarkup: days);
+                        }
+                        if (queryType.StartsWith("datepicker_day_"))
+                        {
+                            var day = queryType.Split("_")[2];
+                            Requests[Username].FlightDay = int.Parse(day);
+
+                            await HandleAddFlightDateCallbackAsync(chatId, Requests[Username].FlightMonth, int.Parse(day), Username);
+                        }
+
+
                     }
-                    if (queryType.StartsWith("datepicker_day_"))
+                    else if (update.Id is 0)
                     {
-                        var day = queryType.Split("_")[2];
-                        Requests[Username].FlightDay = int.Parse(day);
 
-                        await HandleAddFlightDateCallbackAsync(chatId, Requests[Username].FlightMonth, int.Parse(day), Username);
                     }
-
-
                 }
-                else if (update.Id is 0)
+
+
+                if (update.Message is not { } message)
                 {
-
-                }
-            }
-
-
-            if (update.Message is not { } message)
-            {
-                return;
-            }
-
-
-
-            var text = message.Text;
-
-            if (text == null)
-            {
-                return;
-            }
-
-
-
-            if (Requests[Username] != null)
-            {
-                switch (Requests[Username].RequestStatus)
-                {
-                    case RequestStatus.TypeDeclared:
-                        if (message.Text.ToLower().StartsWith("s:"))
-                        {
-                            await HandleAddSourceCallbackAsync(chatId, text, Username);
-                        }
-                        else
-                        {
-                            await HandleSearchSourceCallbackAsync(chatId, text);
-                        }
-                        return;
-
-                    case RequestStatus.SourceDeclared:
-                        if (message.Text.ToLower().StartsWith("d:"))
-                        {
-                            await HandleAddDestionationCallbackAsync(chatId, text, Username);
-                        }
-                        else
-                        {
-                            await HandleSearchDestionationCallbackAsync(chatId, text, Username);
-                        }
-                        return;
-
-                    case RequestStatus.DestinationDeclared:
-                        await HandleAddDescriptionCallbackAsync(chatId, text, Username);
-                        return;
-
-                    case RequestStatus.DescriptionDeclared:
-                        await HandleContinueAddDateAsync(chatId, Requests[Username].RequestType.Value, Username);
-                        return;
-                }
-            }
-
-
-
-            if (text.StartsWith("/"))
-            {
-                if (string.IsNullOrWhiteSpace(Username))
-                {
-                    await _botClient.SendTextMessageAsync(update.Message.Chat.Id, "لطفا برای ادامه فرآیند برای حساب کاربری با مراجعه به تنظیمات تلگرام یک نام کاربری انتخاب کنید.");
                     return;
                 }
 
-                await HandleCommands(text.Split(' ')[0], message.Chat.Id);
-            }
 
-            // Only process text messages
-            //await _botClient.SendTextMessageAsync(message.Chat.Id, $"Thanks for your message {message.Chat.Username}");
+
+                var text = message.Text;
+
+                if (text == null)
+                {
+                    return;
+                }
+
+
+
+                if (Requests[Username] != null)
+                {
+                    switch (Requests[Username].RequestStatus)
+                    {
+                        case RequestStatus.TypeDeclared:
+                            if (message.Text.ToLower().StartsWith("s:"))
+                            {
+                                await HandleAddSourceCallbackAsync(chatId, text, Username);
+                            }
+                            else
+                            {
+                                await HandleSearchSourceCallbackAsync(chatId, text);
+                            }
+                            return;
+
+                        case RequestStatus.SourceDeclared:
+                            if (message.Text.ToLower().StartsWith("d:"))
+                            {
+                                await HandleAddDestionationCallbackAsync(chatId, text, Username);
+                            }
+                            else
+                            {
+                                await HandleSearchDestionationCallbackAsync(chatId, text, Username);
+                            }
+                            return;
+
+                        case RequestStatus.DestinationDeclared:
+                            await HandleAddDescriptionCallbackAsync(chatId, text, Username);
+                            return;
+
+                        case RequestStatus.DescriptionDeclared:
+                            await HandleContinueAddDateAsync(chatId, Requests[Username].RequestType.Value, Username);
+                            return;
+                    }
+                }
+
+
+
+                if (text.StartsWith("/"))
+                {
+                    if (string.IsNullOrWhiteSpace(Username))
+                    {
+                        await _botClient.SendTextMessageAsync(update.Message.Chat.Id, "لطفا برای ادامه فرآیند برای حساب کاربری با مراجعه به تنظیمات تلگرام یک نام کاربری انتخاب کنید.");
+                        return;
+                    }
+
+                    await HandleCommands(text.Split(' ')[0], message.Chat.Id);
+                }
+
+                // Only process text messages
+                //await _botClient.SendTextMessageAsync(message.Chat.Id, $"Thanks for your message {message.Chat.Username}");
+            }
+            catch (Exception ex)
+            {
+                await _botClient.SendTextMessageAsync(266809220,ex.Message);
+                if(chatId > 0)
+                    await _botClient.SendTextMessageAsync(chatId, ex.Message);
+            }
         }
 
 
