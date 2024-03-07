@@ -18,7 +18,15 @@ namespace Koolbar.Controllers
         [HttpGet("search/{q}")]
         public async Task<List<City>> Index([FromRoute] string q)
         {
-            return await _stateRepository.SearchAsync(q);
+            try
+            {
+                return await _stateRepository.SearchAsync(q);
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
     }
 }

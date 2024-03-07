@@ -51,7 +51,7 @@ namespace KoolbarTelegramBot
                 if (update.ChannelPost != null || update.MyChatMember != null)
                     return;
 
-                
+
                 if (update.CallbackQuery != null)
                 {
                     chatId = update.CallbackQuery.Message.Chat.Id;
@@ -208,9 +208,9 @@ namespace KoolbarTelegramBot
             }
             catch (Exception ex)
             {
-                await _botClient.SendTextMessageAsync(266809220,ex.Message);
-                if(chatId > 0)
-                    await _botClient.SendTextMessageAsync(chatId, ex.Message);
+                await _botClient.SendTextMessageAsync(266809220, ex.Message);
+                if (chatId > 0)
+                    await _botClient.SendTextMessageAsync(chatId, "An error occured; Please wait... We try to fix the error as soon as possible.");
             }
         }
 
@@ -361,6 +361,11 @@ namespace KoolbarTelegramBot
 
         private async Task HandleSearchSourceCallbackAsync(long id, string source)
         {
+            if (source == "/create")
+            {
+                await _botClient.SendTextMessageAsync(id, "لطفا مبدا خود را جستجو کنید:");
+                return;
+            }
             var cities = await ApiCall.GetAsync<List<CityDto>>($"states/search/{source}");
 
             ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "s");
@@ -372,6 +377,11 @@ namespace KoolbarTelegramBot
 
         private async Task HandleSearchDestionationCallbackAsync(long id, string source, string username)
         {
+            if (source == "/create")
+            {
+                await _botClient.SendTextMessageAsync(id, "لطفا مقصد خود را جستجو کنید:");
+                return;
+            }
             var cities = await ApiCall.GetAsync<List<CityDto>>($"states/search/{source}");
 
             ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "d");
@@ -383,6 +393,7 @@ namespace KoolbarTelegramBot
 
         private static ReplyKeyboardMarkup GenerateKeyboardButtonForCities(List<CityDto> cities, string sord)
         {
+            cities = cities.DistinctBy(x => x.Title).ToList();
             int culomn = 3;
             var buttons = new List<List<KeyboardButton>>();
             var buttonsfour = new List<KeyboardButton>();
@@ -526,7 +537,7 @@ namespace KoolbarTelegramBot
                 t += num == list.Count - 1 ? "------------------------------------ \n\n" : "";
                 num++;
             }
-            if(!string.IsNullOrEmpty(t))
+            if (!string.IsNullOrEmpty(t))
                 text = t;
 
             await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html, disableWebPagePreview: true);

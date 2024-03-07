@@ -16,7 +16,7 @@ namespace Koolbar.Services
              .Include(x => x.Country)
              .Include(x => x.Cities)
              .SelectMany(x => x.Cities)
-             .Where(x => x.Title.Contains(q) || (!string.IsNullOrEmpty(x.PersianTitle) && x.PersianTitle.Contains(q)))
+             .Where(x => x.Title.Contains(q))
              .Take(20)
              .OrderBy(x => x.Title)
              .ToListAsync();
