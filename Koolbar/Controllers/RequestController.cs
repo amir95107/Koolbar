@@ -58,7 +58,7 @@ namespace Koolbar.Controllers
                     ChatId = request.ChatId
                 });
 
-                user = await UserManager.FindByNameAsync(request.ChatId.ToString());
+                user = await UserManager.FindByNameAsync(request.Username);
             }
 
             var existingRequest = await _requestRepository.GetRequestByChatIdAsync(request.ChatId);
