@@ -28,7 +28,7 @@ namespace Koolbar.Controllers
         public async Task<RequestDto> GetCurrentRequest(long chatId)
         {
             var existingRequest = await _requestRepository.GetRequestByChatIdAsync(chatId);
-            
+
             if (existingRequest == null)
                 return null;
 
@@ -73,7 +73,7 @@ namespace Koolbar.Controllers
                 {
                     RequestStatus = existingRequest.RequestStatus,
                     ChatId = request.ChatId,
-                    Username = request.Username,    
+                    Username = request.Username,
                     Description = existingRequest.Description,
                     Destination = existingRequest.Destination,
                     FlightDate = existingRequest.FlightDate,
@@ -129,7 +129,7 @@ namespace Koolbar.Controllers
                 await _requestRepository.SaveChangesAsync();
             }
         }
-       
+
         [HttpPost("description")]
         public async Task AddDescription([FromBody] RequestDto request)
         {
@@ -141,7 +141,7 @@ namespace Koolbar.Controllers
             {
                 existiongRequest.Description = request.Description;
                 existiongRequest.RequestStatus = RequestStatus.DescriptionDeclared;
-                if(request.RequestType == RequestType.FreightOwner)
+                if (request.RequestType == RequestType.FreightOwner)
                     existiongRequest.IsCompleted = true;
 
                 _requestRepository.Modify(existiongRequest);
@@ -156,7 +156,7 @@ namespace Koolbar.Controllers
             if (existiongRequest != null &&
                 existiongRequest.RequestType != null &&
                 existiongRequest.Source != null &&
-                existiongRequest.Destination != null && 
+                existiongRequest.Destination != null &&
                 existiongRequest.Description != null)
             {
                 existiongRequest.FlightDate = request.FlightDate;
@@ -176,6 +176,60 @@ namespace Koolbar.Controllers
                 return await _requestRepository.SuggestAsync(existiongRequest);
             }
             throw new Exception("Method not allowed");
+        }
+
+        [HttpPost("all")]
+        public async Task<ActionResult<RequestDto>> AddAllRequest([FromBody] RequestDto request)
+        {
+            var user = await UserManager.FindByNameAsync(request.Username.ToUpper());
+
+            if (user is null)
+            {
+                var u = await UserManager.CreateAsync(new User
+                {
+                    UserName = request.Username,
+                    ChatId = request.ChatId
+                });
+
+                user = await UserManager.FindByNameAsync(request.Username);
+            }
+
+            var existingRequest = await _requestRepository.GetRequestsByChatIdAsync(request.ChatId);
+
+            if (existingRequest is null || existingRequest.Count == 0)
+            {
+                await _requestRepository.AddAsync(new Request
+                {
+                    UserId = user.Id,
+                    Description = request.Description,
+                    Destination = request.Destination,
+                    FlightDate = request.FlightDate,
+                    LimitDate = request.LimitDate,
+                    RequestStatus = request.RequestStatus,
+                    RequestType = request.RequestType,
+                    Source = request.Source
+                });
+                await _requestRepository.SaveChangesAsync();
+            }
+            else
+            {
+                //request.Requests = existingRequest
+                //    .Select(x => new RequestDto
+                //    {
+                //        RequestStatus = x.RequestStatus,
+                //        ChatId = request.ChatId,
+                //        Username = request.Username,
+                //        Description = x.Description,
+                //        Destination = x.Destination,
+                //        FlightDate = x.FlightDate,
+                //        RequestType = x.RequestType,
+                //        Source = x.Source,
+                //        UserId = x.UserId
+                //    })
+                //.ToList();
+            }
+            
+            return request;
         }
     }
 }

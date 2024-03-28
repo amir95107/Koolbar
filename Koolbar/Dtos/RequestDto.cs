@@ -17,5 +17,7 @@ namespace Koolbar.Dtos
         public string? Description { get; set; }
         public string? ErrorMessage {  get; set; } 
         public DateTime? CreatedAt { get; set; }
+
+        //public List<RequestDto> Requests { get; set; }
     }
 }

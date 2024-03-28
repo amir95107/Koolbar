@@ -29,6 +29,8 @@ _client.BaseAddress = new Uri("http://localhost:5000/api/");
                 }
                 else
                 {
+                    var b = await request.Content.ReadAsStringAsync();
+                    var a = JsonConvert.DeserializeObject<T>(b);
                     throw new Exception($"خطا در سرویس {url}");
                 }
             }

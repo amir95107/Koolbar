@@ -18,5 +18,7 @@ namespace Koolbar.Dtos
         public int? FlightDay { get; set; }
         public int? MessageId {  get; set; }
         public bool IsCompleted { get; set; }
+        //public List<RequestDto> Requests { get; set; }
+
     }
 }

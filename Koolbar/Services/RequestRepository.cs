@@ -33,6 +33,23 @@ namespace Koolbar.Services
             }
         }
 
+        public async Task<List<Request>> GetRequestsByChatIdAsync(long chatid)
+        {
+            try
+            {
+                return await NotRemoved
+                .Include(x => x.User)
+                .OrderByDescending(x => x.CreatedAt)
+                .Where(x => x.User.ChatId == chatid && !x.IsCompleted)
+                .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
+
         public async Task<Request> GetRequestByUserIdAsync(Guid userid)
             => await NotRemoved
             .FirstOrDefaultAsync(x => x.UserId == userid);

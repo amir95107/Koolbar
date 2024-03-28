@@ -66,7 +66,15 @@ namespace Koolbar.Controllers
             {
                 var user = await UserManager.FindByNameAsync(request.Username);
                 if (user is null)
-                    return BadRequest("Username not found");
+                {
+                    await UserManager.CreateAsync(new User
+                    {
+                        ChatId = request.ChatId,
+                        UserName = request.Username
+                    });
+
+                    user = await UserManager.FindByNameAsync(request.Username);
+                }
 
                 var req = new Request
                 {

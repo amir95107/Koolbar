@@ -16,6 +16,7 @@ namespace Datalayer.Models
 
         public RequestStatus RequestStatus { get; set; } = RequestStatus.New;
         public bool IsCompleted { get; set; }
+        public long MessageId { get; set; }
 
 
         public virtual User User { get; set; }
