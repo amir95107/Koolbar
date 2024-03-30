@@ -417,7 +417,8 @@ namespace KoolbarTelegramBot
 
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
-            await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline,parseMode: ParseMode.Html);
+            var msg2 = await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline,parseMode: ParseMode.Html);
+            Requests[username].MessageId = msg2.MessageId;
         }
 
         private async Task HandleAddFlightDateCallbackAsync(long id, string month, int day, string username)
@@ -507,6 +508,15 @@ namespace KoolbarTelegramBot
             await _botClient.SendTextMessageAsync(ChannelId, text, replyMarkup: markup);
             Requests.Remove(username);
             await GenerateSuggestedText(chatId, (int)request.RequestType!);
+            InlineKeyboardButton urlButton2 = new InlineKeyboardButton($"شروع مجدد {Emojies.Retry}");
+            urlButton2.CallbackData = "final-retry";
+
+            var buttons = new InlineKeyboardButton[] { urlButton2 };
+
+            // Keyboard markup
+            InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
+
+            await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), request.MessageId.Value,replyMarkup:inline);
         }
 
         private static InlineKeyboardMarkup GetMonthPickerInlineKeyboard()
