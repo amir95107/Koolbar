@@ -383,11 +383,11 @@ namespace KoolbarTelegramBot
 
             var reqTypeText = Requests[username].RequestType == RequestType.Passenger ? "مسافر" : "دارای بار";
             
-            var text = Repeat(Emojies.Airplane, 6) +
-                $"<a href='http://t.me/{username}'>@{username}</a> \n"
-                + $"#{reqTypeText}" + "\n"
-                + $"مبدا: {Requests[username].Source} " + "\n"
-                + $"مقصد: {Requests[username].Destination}" + "\n"
+            var text = Repeat(Emojies.Airplane, 6)+ "\n\n"+
+                $"<a href='http://t.me/{username}'>@{username}</a> \n\n"
+                + $"#{reqTypeText}" + "\n\n"
+                + $"مبدا: {Requests[username].Source} " + "\n\n"
+                + $"مقصد: {Requests[username].Destination}" + "\n\n"
                 + $"<b>{Requests[username].Description}</b>";
 
             if (reqTypeText == "مسافر")
@@ -396,7 +396,7 @@ namespace KoolbarTelegramBot
 
                 var months = GetMonthPickerInlineKeyboard();
 
-                var msg = await _botClient.SendTextMessageAsync(id, text, replyMarkup: months, disableWebPagePreview: true);
+                var msg = await _botClient.SendTextMessageAsync(id, text, replyMarkup: months, parseMode: ParseMode.Html,disableWebPagePreview: true);
                 Requests[username].MessageId = msg.MessageId;
                 return;
             }
@@ -417,7 +417,7 @@ namespace KoolbarTelegramBot
 
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
-            await _botClient.SendTextMessageAsync(ChannelId, text, replyMarkup: inline);
+            await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline,parseMode: ParseMode.Html);
         }
 
         private async Task HandleAddFlightDateCallbackAsync(long id, string month, int day, string username)
@@ -554,12 +554,12 @@ namespace KoolbarTelegramBot
 
         private static string Repeat(string str, int num)
         {
-            var res = str;
+            var res = string.Empty;
             for(int i = 0; i< num; i++)
             {
                 res += str;
             }
-            return str;
+            return res;
         }
 
 
