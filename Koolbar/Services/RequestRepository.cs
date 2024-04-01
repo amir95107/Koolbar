@@ -85,7 +85,7 @@ namespace Koolbar.Services
         public async Task<List<Request>> SuggestAsync(Request request)
             => await Entities
             .Include(x => x.User)
-            .Where(x => x.IsCompleted && x.RequestType != request.RequestType &&
+            .Where(x => x.IsCompleted && x.RequestType != request.RequestType && x.UserId != request.UserId &&
             (x.Source == request.Destination || x.Destination == request.Source) &&
             (request.RequestType == RequestType.FreightOwner ? x.RequestType == RequestType.Passenger && x.FlightDate < DateTime.Now : true))
             .ToListAsync();
@@ -93,6 +93,7 @@ namespace Koolbar.Services
         public async Task<Request> GetCompleteRequestByChatIdAsync(long chatid)
             => await NotRemoved
                 .Include(x => x.User)
+                .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync(x => x.User.ChatId == chatid && x.IsCompleted);
     }
 }

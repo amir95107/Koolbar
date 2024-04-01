@@ -196,39 +196,55 @@ namespace Koolbar.Controllers
 
             var existingRequest = await _requestRepository.GetRequestsByChatIdAsync(request.ChatId);
 
-            if (existingRequest is null || existingRequest.Count == 0)
+            //if (existingRequest is null || existingRequest.Count == 0)
+            //{
+            //    await _requestRepository.AddAsync(new Request
+            //    {
+            //        UserId = user.Id,
+            //        Description = request.Description,
+            //        Destination = request.Destination,
+            //        FlightDate = request.FlightDate,
+            //        LimitDate = request.LimitDate,
+            //        RequestStatus = request.RequestStatus,
+            //        RequestType = request.RequestType,
+            //        Source = request.Source,
+            //        IsCompleted = true
+            //    });
+            //    await _requestRepository.SaveChangesAsync();
+            //}
+            //else
+            //{
+            //    request.Requests = existingRequest
+            //        .Select(x => new RequestDto
+            //        {
+            //            RequestStatus = x.RequestStatus,
+            //            ChatId = request.ChatId,
+            //            Username = request.Username,
+            //            Description = x.Description,
+            //            Destination = x.Destination,
+            //            FlightDate = x.FlightDate,
+            //            RequestType = x.RequestType,
+            //            Source = x.Source,
+            //            UserId = x.UserId
+            //        })
+            //    .ToList();
+            //}
+
+            await _requestRepository.AddAsync(new Request
             {
-                await _requestRepository.AddAsync(new Request
-                {
-                    UserId = user.Id,
-                    Description = request.Description,
-                    Destination = request.Destination,
-                    FlightDate = request.FlightDate,
-                    LimitDate = request.LimitDate,
-                    RequestStatus = request.RequestStatus,
-                    RequestType = request.RequestType,
-                    Source = request.Source
-                });
-                await _requestRepository.SaveChangesAsync();
-            }
-            else
-            {
-                //request.Requests = existingRequest
-                //    .Select(x => new RequestDto
-                //    {
-                //        RequestStatus = x.RequestStatus,
-                //        ChatId = request.ChatId,
-                //        Username = request.Username,
-                //        Description = x.Description,
-                //        Destination = x.Destination,
-                //        FlightDate = x.FlightDate,
-                //        RequestType = x.RequestType,
-                //        Source = x.Source,
-                //        UserId = x.UserId
-                //    })
-                //.ToList();
-            }
-            
+                UserId = user.Id,
+                Description = request.Description,
+                Destination = request.Destination,
+                FlightDate = request.FlightDate,
+                LimitDate = request.LimitDate,
+                RequestStatus = request.RequestStatus,
+                RequestType = request.RequestType,
+                Source = request.Source,
+                IsCompleted = true,
+                MessageId = request.MessageId
+            });
+            await _requestRepository.SaveChangesAsync();
+
             return request;
         }
     }

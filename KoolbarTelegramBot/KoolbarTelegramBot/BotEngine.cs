@@ -44,7 +44,7 @@ namespace KoolbarTelegramBot
             Console.WriteLine("Telegram bot is start running...");
         }
 
-        private readonly string[] CurrentCommandList = ["/start", "/create"];
+        private readonly string[] CurrentCommandList = ["/start"];
 
 
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -215,12 +215,8 @@ namespace KoolbarTelegramBot
         {
             switch (command)
             {
-                case "/create":
-                    await HandleCreateCommands(id, "");
-                    break;
-
                 case "/start":
-                    await HandleStartCommands(id, "");
+                    await HandleCreateCommands(id, "");
                     break;
             }
         }
@@ -383,12 +379,12 @@ namespace KoolbarTelegramBot
 
             var reqTypeText = Requests[username].RequestType == RequestType.Passenger ? "مسافر" : "دارای بار";
             
-            var text = Repeat(Emojies.Airplane, 6)+ "\n\n"+
+            var text = Repeat(Emojies.Package, 6)+ "\n\n"+
                 $"<a href='http://t.me/{username}'>@{username}</a> \n\n"
                 + $"#{reqTypeText}" + "\n\n"
                 + $"مبدا: {Requests[username].Source} " + "\n\n"
                 + $"مقصد: {Requests[username].Destination}" + "\n\n"
-                + $"<b>{Requests[username].Description}</b>";
+                + $"توضیحات: <b>{Requests[username].Description}</b>";
 
             if (reqTypeText == "مسافر")
             {
@@ -417,7 +413,7 @@ namespace KoolbarTelegramBot
 
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
-            var msg2 = await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline,parseMode: ParseMode.Html);
+            var msg2 = await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline,parseMode: ParseMode.Html, disableWebPagePreview: true);
             Requests[username].MessageId = msg2.MessageId;
         }
 
@@ -451,7 +447,8 @@ namespace KoolbarTelegramBot
 
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
-            await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline, parseMode: ParseMode.Html, disableWebPagePreview: true);
+            var msg= await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline, parseMode: ParseMode.Html, disableWebPagePreview: true);
+            Requests[username].MessageId = msg.MessageId;
             //await GenerateSuggestedText(id, 10);
             //Requests.Remove(username);
         }
@@ -459,8 +456,8 @@ namespace KoolbarTelegramBot
         private async Task<string> GenerateSuggestedText(long id, int requestType)
         {
             var list = await ApiCall.GetAsync<List<RequestDto>>($"requests/suggest/{id}");
-
-            var text = list.Count == 0 ? "موردی جهت نمایش وجود ندارد!" : string.Empty;
+            var text = "<strong>پیشنهادات: </strong> \n\n";
+            text += list.Count == 0 ? "موردی جهت نمایش وجود ندارد!" : string.Empty;
             int num = 0;
             var t = string.Empty;
             foreach (var item in list)
@@ -470,9 +467,9 @@ namespace KoolbarTelegramBot
                 num++;
             }
             if (!string.IsNullOrEmpty(t))
-                text = t;
+                text += t;
 
-            await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html, disableWebPagePreview: true);
+           await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html, disableWebPagePreview: true);
             return "";
         }
 
@@ -492,11 +489,11 @@ namespace KoolbarTelegramBot
 
             var emoji = request.RequestType == RequestType.FreightOwner ? Emojies.Package : Emojies.Airplane;
             var typeStr = request.RequestType == RequestType.FreightOwner ? "باردار" : "مسافر";
-            var flightDateTxt = "تاریخ پرواز: " + (request.RequestType == RequestType.FreightOwner ? "" : request.FlightDate!.Value.ToString("yyyy/MM/dd")) + "\n\n";
+            var flightDateTxt = (request.RequestType == RequestType.FreightOwner ? "" : "تاریخ پرواز: " + request.FlightDate!.Value.ToString("yyyy/MM/dd")) + "\n\n";
             var text = Repeat(emoji,6) + "\n\n" +
                 $"#{typeStr} \n\n" +
                 $"مبدا: {request.Source} \n\n" +
-                $"مقصد: {request.Source} \n\n" +
+                $"مقصد: {request.Destination} \n\n" +
                 $"{flightDateTxt}" +
                 $"توضیحات: {request.Description}";
 
@@ -506,8 +503,6 @@ namespace KoolbarTelegramBot
             InlineKeyboardMarkup markup = new InlineKeyboardMarkup(urlButton);
 
             await _botClient.SendTextMessageAsync(ChannelId, text, replyMarkup: markup);
-            Requests.Remove(username);
-            await GenerateSuggestedText(chatId, (int)request.RequestType!);
             InlineKeyboardButton urlButton2 = new InlineKeyboardButton($"شروع مجدد {Emojies.Retry}");
             urlButton2.CallbackData = "final-retry";
 
@@ -516,7 +511,9 @@ namespace KoolbarTelegramBot
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
 
-            await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), request.MessageId.Value,replyMarkup:inline);
+            await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), request.MessageId.Value, replyMarkup: inline);
+            await GenerateSuggestedText(chatId, (int)request.RequestType!);
+            Requests.Remove(username);
         }
 
         private static InlineKeyboardMarkup GetMonthPickerInlineKeyboard()

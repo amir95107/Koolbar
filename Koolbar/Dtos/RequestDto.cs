@@ -7,6 +7,7 @@ namespace Koolbar.Dtos
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
         public long ChatId { get; set; }
+        public long MessageId { get; set; }
         public RequestType? RequestType { get; set; }
         public RequestStatus RequestStatus { get; set; }
         public string? Source { get; set; }
