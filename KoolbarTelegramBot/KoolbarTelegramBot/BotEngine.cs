@@ -10,7 +10,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KoolbarTelegramBot
 {
-    
+
     public class BotEngine
     {
 
@@ -81,9 +81,15 @@ namespace KoolbarTelegramBot
                 var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, chatId);
                 if (userChannelsStatus.Status is not ChatMemberStatus.Member and not ChatMemberStatus.Creator and not ChatMemberStatus.Administrator)
                 {
-                    var txt = "لطفا برای استفاده از خدمات بات، کانال(ها‌ی) زیر را دنبال کنید." + "\n\n" +
+                    var txt = "لطفا برای استفاده از خدمات بات، کانال(ها‌ی) زیر را دنبال نمایید." + "\n\n" +
                                 "<a href='https://t.me/koolbar_international'>@koolbar_international</a>";
-                    await _botClient.SendTextMessageAsync(chatId, txt, parseMode: ParseMode.Html, disableWebPagePreview: true);
+
+                    InlineKeyboardButton urlButton = new InlineKeyboardButton("عضو شدم");
+                    urlButton.CallbackData = "joined";
+                    var buttons = new InlineKeyboardButton[] { urlButton };
+                    InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
+
+                    await _botClient.SendTextMessageAsync(chatId, txt, parseMode: ParseMode.Html, disableWebPagePreview: true, replyMarkup: inline);
 
                     return;
                 }
@@ -92,8 +98,16 @@ namespace KoolbarTelegramBot
                 #region Check if user has username
                 if (string.IsNullOrWhiteSpace(userChannelsStatus.User.Username))
                 {
-                    var txt = "لطفا برای استفاده از خدمات بات، با مراجعه به تنظیمات تلگرام، Username خود را وارد کنید." + "\n\n";
-                    await _botClient.SendTextMessageAsync(chatId, txt);
+                    var txt = "لطفا برای استفاده از خدمات بات، با مراجعه به تنظیمات تلگرام، Username خود را وارد نمایید." + "\n\n";
+                    InlineKeyboardButton urlButton = new InlineKeyboardButton("تنظیم کردم");
+
+                    urlButton.CallbackData = "usernameset";
+
+                    var buttons = new InlineKeyboardButton[] { urlButton };
+
+                    // Keyboard markup
+                    InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
+                    await _botClient.SendTextMessageAsync(chatId, txt, replyMarkup: inline);
 
                     return;
                 }
@@ -127,11 +141,11 @@ namespace KoolbarTelegramBot
 
                             await HandleAddFlightDateCallbackAsync(chatId, Requests[Username].FlightMonth, int.Parse(day), Username);
                         }
-                        if(update.CallbackQuery.Data == "final-confirm")
+                        if (update.CallbackQuery.Data == "final-confirm")
                         {
                             await HandleFinalConfirmRequestAsync(chatId, Username);
                         }
-                        if (update.CallbackQuery.Data == "final-retry")
+                        if (update.CallbackQuery.Data is "final-retry" or "usernameset" or "joined")
                         {
                             await HandleCreateCommands(chatId, "");
                         }
@@ -201,7 +215,7 @@ namespace KoolbarTelegramBot
             }
         }
 
-        
+
 
         private async Task HandleCommands(string command, long chatid)
         {
@@ -270,7 +284,7 @@ namespace KoolbarTelegramBot
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
 
             // Send message!
-            await _botClient.SendTextMessageAsync(id, "نوع درخواست خود را مشخص کنید.", replyMarkup: inline);
+            await _botClient.SendTextMessageAsync(id, "نوع درخواست خود را مشخص نمایید.", replyMarkup: inline);
         }
 
 
@@ -283,8 +297,8 @@ namespace KoolbarTelegramBot
                     await HandleCreateCommands(chatid);
 
                 var data = callback.Data.Split('-')[1];
-                
-                var message = await _botClient.SendTextMessageAsync(chatid, "لطفا مبدا خود را جستجو کنید:");
+
+                var message = await _botClient.SendTextMessageAsync(chatid, "لطفا مبدا خود را جستجو نمایید (انگلیسی):");
 
                 Requests[username].RequestStatus = RequestStatus.TypeDeclared;
                 Requests[username].RequestType = Enum.Parse<RequestType>(data);
@@ -304,7 +318,7 @@ namespace KoolbarTelegramBot
 
             ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "s");
 
-            var text = cities.Count > 0 ? "لطفا از بین شهرهای زیر شهر مبدا خود را انتخاب کنید:" : "موردی یافت نشد. لطفا مجددا تلاش کنید.";
+            var text = cities.Count > 0 ? "لطفا از بین شهرهای زیر شهر مبدا خود را انتخاب نمایید:" : "موردی یافت نشد. لطفا مجددا تلاش نمایید.";
 
             await _botClient.SendTextMessageAsync(id, text, replyMarkup: x);
         }
@@ -314,7 +328,7 @@ namespace KoolbarTelegramBot
             Requests[username].Source = source.Split("s:")[1];
             Requests[username].RequestStatus = RequestStatus.SourceDeclared;
 
-            await _botClient.SendTextMessageAsync(id, "لطفا مقصد خود را جستجو کنید:");
+            await _botClient.SendTextMessageAsync(id, "لطفا مقصد خود را جستجو نمایید(انگلیسی):");
         }
 
         private async Task HandleSearchDestionationCallbackAsync(long id, string source, string username)
@@ -323,7 +337,7 @@ namespace KoolbarTelegramBot
 
             ReplyKeyboardMarkup x = GenerateKeyboardButtonForCities(cities, "d");
 
-            var text = cities.Count > 0 ? "لطفا از بین شهرهای زیر شهر مقصد خود را انتخاب کنید:" : "موردی یافت نشد. لطفا مجددا تلاش کنید.";
+            var text = cities.Count > 0 ? "لطفا از بین شهرهای زیر شهر مقصد خود را انتخاب نمایید:" : "موردی یافت نشد. لطفا مجددا تلاش نمایید.";
 
             await _botClient.SendTextMessageAsync(id, text, replyMarkup: x);
         }
@@ -333,7 +347,11 @@ namespace KoolbarTelegramBot
             Requests[username].Destination = destination.Split("d:")[1];
             Requests[username].RequestStatus = RequestStatus.DestinationDeclared;
 
-            await _botClient.SendTextMessageAsync(id, "لطفا توضیحات خود را وارد کنید:");
+            var text = "لطفا توضیحات درباره بارهای مورد پذیرش را وارد نمایید:";
+            if (Requests[username].RequestType == RequestType.FreightOwner)
+                text = "لطفا اطلاعات مربوط به بار خود را وارد نمایید:";
+
+            await _botClient.SendTextMessageAsync(id, text);
         }
 
         private static ReplyKeyboardMarkup GenerateKeyboardButtonForCities(List<CityDto> cities, string sord)
@@ -357,13 +375,13 @@ namespace KoolbarTelegramBot
             return x;
         }
 
-        
+
         private async Task HandleContinueAddDateAsync(long id, RequestType requestType, string username)
         {
             var text = string.Empty;
             if (requestType == RequestType.Passenger)
             {
-                text = $"لطفا تاریخ پرواز را مشخص کنید.";
+                text = $"لطفا تاریخ پرواز را مشخص نمایید.";
 
                 var months = GetMonthPickerInlineKeyboard();
 
@@ -378,8 +396,8 @@ namespace KoolbarTelegramBot
             Requests[username].RequestStatus = RequestStatus.DescriptionDeclared;
 
             var reqTypeText = Requests[username].RequestType == RequestType.Passenger ? "مسافر" : "دارای بار";
-            
-            var text = Repeat(Emojies.Package, 6)+ "\n\n"+
+
+            var text = Repeat(Emojies.Package, 6) + "\n\n" +
                 $"<a href='http://t.me/{username}'>@{username}</a> \n\n"
                 + $"#{reqTypeText}" + "\n\n"
                 + $"مبدا: {Requests[username].Source} " + "\n\n"
@@ -388,11 +406,11 @@ namespace KoolbarTelegramBot
 
             if (reqTypeText == "مسافر")
             {
-                text = $"لطفا تاریخ پرواز را مشخص کنید.";
+                text = $"لطفا تاریخ پرواز را مشخص نمایید.";
 
                 var months = GetMonthPickerInlineKeyboard();
 
-                var msg = await _botClient.SendTextMessageAsync(id, text, replyMarkup: months, parseMode: ParseMode.Html,disableWebPagePreview: true);
+                var msg = await _botClient.SendTextMessageAsync(id, text, replyMarkup: months, parseMode: ParseMode.Html, disableWebPagePreview: true);
                 Requests[username].MessageId = msg.MessageId;
                 return;
             }
@@ -413,7 +431,7 @@ namespace KoolbarTelegramBot
 
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
-            var msg2 = await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline,parseMode: ParseMode.Html, disableWebPagePreview: true);
+            var msg2 = await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline, parseMode: ParseMode.Html, disableWebPagePreview: true);
             Requests[username].MessageId = msg2.MessageId;
         }
 
@@ -421,7 +439,7 @@ namespace KoolbarTelegramBot
         {
             var months = (new[] { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }).ToArray();
 
-            var date = new DateTime(DateTime.UtcNow.Year, Array.IndexOf(months, month)+1, day);
+            var date = new DateTime(DateTime.UtcNow.Year, Array.IndexOf(months, month) + 1, day);
 
             Requests[username].FlightDate = date;
             Requests[username].RequestStatus = RequestStatus.DestinationDeclared;
@@ -447,16 +465,23 @@ namespace KoolbarTelegramBot
 
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
-            var msg= await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline, parseMode: ParseMode.Html, disableWebPagePreview: true);
+            var msg = await _botClient.SendTextMessageAsync(id, text, replyMarkup: inline, parseMode: ParseMode.Html, disableWebPagePreview: true);
             Requests[username].MessageId = msg.MessageId;
             //await GenerateSuggestedText(id, 10);
             //Requests.Remove(username);
         }
 
-        private async Task<string> GenerateSuggestedText(long id, int requestType)
+        private async Task<List<RequestDto>> GenerateSuggestedText(long id, int requestType, string? username, bool showInChannel = true)
         {
+            var text = "درخواست شما در کانال ثبت شد. \n" +
+                "<a href='https://t.me/koolbar_international'>کانال اطلاع رسانی کولبر</a>";
+
+            if (showInChannel)
+            {
+                await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html, disableWebPagePreview: true);
+            }
             var list = await ApiCall.GetAsync<List<RequestDto>>($"requests/suggest/{id}");
-            var text = "<strong>پیشنهادات: </strong> \n\n";
+            text = "<strong>پیشنهادات: </strong> \n\n";
             text += list.Count == 0 ? "موردی جهت نمایش وجود ندارد!" : string.Empty;
             int num = 0;
             var t = string.Empty;
@@ -466,11 +491,11 @@ namespace KoolbarTelegramBot
                 t += num == list.Count - 1 ? "------------------------------------ \n\n" : "";
                 num++;
             }
+
             if (!string.IsNullOrEmpty(t))
                 text += t;
 
-           await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html, disableWebPagePreview: true);
-            return "";
+            return list;
         }
 
         private async Task HandleFinalConfirmRequestAsync(long chatId, string username)
@@ -490,7 +515,7 @@ namespace KoolbarTelegramBot
             var emoji = request.RequestType == RequestType.FreightOwner ? Emojies.Package : Emojies.Airplane;
             var typeStr = request.RequestType == RequestType.FreightOwner ? "باردار" : "مسافر";
             var flightDateTxt = (request.RequestType == RequestType.FreightOwner ? "" : "تاریخ پرواز: " + request.FlightDate!.Value.ToString("yyyy/MM/dd")) + "\n\n";
-            var text = Repeat(emoji,6) + "\n\n" +
+            var text = Repeat(emoji, 6) + "\n\n" +
                 $"#{typeStr} \n\n" +
                 $"مبدا: {request.Source} \n\n" +
                 $"مقصد: {request.Destination} \n\n" +
@@ -512,7 +537,10 @@ namespace KoolbarTelegramBot
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
 
             await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), request.MessageId.Value, replyMarkup: inline);
-            await GenerateSuggestedText(chatId, (int)request.RequestType!);
+            var list= await GenerateSuggestedText(chatId, (int)request.RequestType!, username: username);
+
+            await NotifyOthers(chatId,list);
+
             Requests.Remove(username);
         }
 
@@ -531,6 +559,16 @@ namespace KoolbarTelegramBot
             }
 
             return new InlineKeyboardMarkup(buttons);
+        }
+
+        private async Task NotifyOthers(long chatId,List<RequestDto> list)
+        {
+            foreach (var item in list)
+            {
+                var text = "فردی متناسب با درخواست شما پیدا شد: \n\n" +
+                    $"<a href='https://t.me/{item.Username}'>@{item.Username}</a>";
+                await _botClient.SendTextMessageAsync(item.ChatId, text, parseMode: ParseMode.Html, disableNotification:true);
+            }
         }
 
         private static InlineKeyboardMarkup GetDayPickerInlineKeyboard()
@@ -562,7 +600,7 @@ namespace KoolbarTelegramBot
         private static string Repeat(string str, int num)
         {
             var res = string.Empty;
-            for(int i = 0; i< num; i++)
+            for (int i = 0; i < num; i++)
             {
                 res += str;
             }
