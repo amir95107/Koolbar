@@ -82,12 +82,29 @@ namespace Koolbar.Services
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
 
-        public async Task<List<Request>> SuggestAsync(Request request)
-            => await Entities
+        public async Task<List<RequestDto>> SuggestAsync(Request request)
+            => await NotRemoved
             .Include(x => x.User)
             .Where(x => x.IsCompleted && x.RequestType != request.RequestType && x.UserId != request.UserId &&
-            (x.Source == request.Destination || x.Destination == request.Source) &&
+            (x.Source == request.Destination && x.Destination == request.Source) &&
             (request.RequestType == RequestType.FreightOwner ? x.RequestType == RequestType.Passenger && x.FlightDate < DateTime.Now : true))
+            .Select(x=>new RequestDto
+            {
+                Id = x.Id,
+                ChatId = x.User.ChatId,
+                CreatedAt = DateTime.Now,
+                RequestType = x.RequestType,
+                Description = x.Description,
+                Destination= x.Destination,
+                FlightDate = x.FlightDate,
+                LimitDate = x.LimitDate,
+                Key = x.Key,
+                MessageId = x.MessageId,
+                RequestStatus = x.RequestStatus,
+                Source  = x.Source,
+                UserId = x.UserId,
+                Username = x.User.UserName
+            })
             .ToListAsync();
 
         public async Task<Request> GetCompleteRequestByChatIdAsync(long chatid)
@@ -95,5 +112,14 @@ namespace Koolbar.Services
                 .Include(x => x.User)
                 .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync(x => x.User.ChatId == chatid && x.IsCompleted);
+
+        public async Task<int?> GetLastKeyAsync()
+            => await NotRemoved
+            .Select(x => x.Key)
+            .MaxAsync();
+
+        public async Task<Request> GetRequestByKeyAsync(int key)
+            => await NotRemoved
+            .FirstOrDefaultAsync(x => x.Key == key);
     }
 }

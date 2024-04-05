@@ -168,14 +168,20 @@ namespace Koolbar.Controllers
         }
 
         [HttpGet("suggest/{id}")]
-        public async Task<List<Request>> Suggest([FromRoute] long id)
+        public async Task<ActionResult<List<RequestDto>>> Suggest([FromRoute] long id)
         {
-            var existiongRequest = await _requestRepository.GetCompleteRequestByChatIdAsync(id);
-            if (existiongRequest != null)
+            try
             {
+                var existiongRequest = await _requestRepository.GetCompleteRequestByChatIdAsync(id);
+                if (existiongRequest == null)
+                    return new List<RequestDto>();
+
                 return await _requestRepository.SuggestAsync(existiongRequest);
             }
-            throw new Exception("Method not allowed");
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         [HttpPost("all")]
@@ -230,6 +236,8 @@ namespace Koolbar.Controllers
             //    .ToList();
             //}
 
+            var key = await _requestRepository.GetLastKeyAsync();
+
             await _requestRepository.AddAsync(new Request
             {
                 UserId = user.Id,
@@ -241,9 +249,12 @@ namespace Koolbar.Controllers
                 RequestType = request.RequestType,
                 Source = request.Source,
                 IsCompleted = true,
-                MessageId = request.MessageId
+                MessageId = request.MessageId,
+                Key = key.Value + 1,
             });
             await _requestRepository.SaveChangesAsync();
+
+            request.Key = key.Value + 1;
 
             return request;
         }

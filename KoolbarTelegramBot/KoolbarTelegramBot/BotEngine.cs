@@ -16,8 +16,12 @@ namespace KoolbarTelegramBot
 
         private readonly TelegramBotClient _botClient;
         private static Dictionary<string, RequestDto> Requests = new Dictionary<string, RequestDto>();
-        private const long ChannelId = -1001974756992;
-
+        //
+#if DEBUG
+        private const long ChannelId = -1002095988136;
+#else 
+    private const long ChannelId = -1001974756992;
+#endif
 
         public BotEngine(TelegramBotClient botClient)
         {
@@ -495,15 +499,19 @@ namespace KoolbarTelegramBot
             if (!string.IsNullOrEmpty(t))
                 text += t;
 
+            await _botClient.SendTextMessageAsync(id, text, parseMode: ParseMode.Html, disableWebPagePreview: true);
+
             return list;
         }
 
         private async Task HandleFinalConfirmRequestAsync(long chatId, string username)
         {
             var request = Requests[username];
+            var key = 0;
             try
             {
-                await ApiCall.PostAsync("requests/all", request);
+                var result = await ApiCall.PostAsync("requests/all", request);
+                key = result.Key;
             }
             catch (Exception ex)
             {
@@ -514,20 +522,22 @@ namespace KoolbarTelegramBot
 
             var emoji = request.RequestType == RequestType.FreightOwner ? Emojies.Package : Emojies.Airplane;
             var typeStr = request.RequestType == RequestType.FreightOwner ? "باردار" : "مسافر";
-            var flightDateTxt = (request.RequestType == RequestType.FreightOwner ? "" : "تاریخ پرواز: " + request.FlightDate!.Value.ToString("yyyy/MM/dd")) + "\n\n";
+            var flightDateTxt = (request.RequestType == RequestType.FreightOwner ? "" : "\n\n تاریخ پرواز: " + request.FlightDate!.Value.ToString("yyyy/MM/dd")) + "\n\n";
             var text = Repeat(emoji, 6) + "\n\n" +
+                $"id: {key} \n\n" +
                 $"#{typeStr} \n\n" +
                 $"مبدا: {request.Source} \n\n" +
-                $"مقصد: {request.Destination} \n\n" +
+                $"مقصد: {request.Destination}" +
                 $"{flightDateTxt}" +
-                $"توضیحات: {request.Description}";
+                $"توضیحات: {request.Description} \n\n" +
+                $"<a href='https://t.me/koolbar_bot'>ثبت درخواست</a>";
 
             InlineKeyboardButton urlButton = new InlineKeyboardButton("پیام به کاربر");
             urlButton.Url = $"https://t.me/{username}";
 
             InlineKeyboardMarkup markup = new InlineKeyboardMarkup(urlButton);
 
-            await _botClient.SendTextMessageAsync(ChannelId, text, replyMarkup: markup);
+            await _botClient.SendTextMessageAsync(ChannelId, text, replyMarkup: markup, parseMode: ParseMode.Html, disableWebPagePreview: true);
             InlineKeyboardButton urlButton2 = new InlineKeyboardButton($"شروع مجدد {Emojies.Retry}");
             urlButton2.CallbackData = "final-retry";
 
@@ -537,9 +547,9 @@ namespace KoolbarTelegramBot
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
 
             await _botClient.EditMessageReplyMarkupAsync(new ChatId(chatId), request.MessageId.Value, replyMarkup: inline);
-            var list= await GenerateSuggestedText(chatId, (int)request.RequestType!, username: username);
+            var list = await GenerateSuggestedText(chatId, (int)request.RequestType!, username: username);
 
-            await NotifyOthers(chatId,list);
+            await NotifyOthers(chatId, list);
 
             Requests.Remove(username);
         }
@@ -561,13 +571,13 @@ namespace KoolbarTelegramBot
             return new InlineKeyboardMarkup(buttons);
         }
 
-        private async Task NotifyOthers(long chatId,List<RequestDto> list)
+        private async Task NotifyOthers(long chatId, List<RequestDto> list)
         {
             foreach (var item in list)
             {
                 var text = "فردی متناسب با درخواست شما پیدا شد: \n\n" +
                     $"<a href='https://t.me/{item.Username}'>@{item.Username}</a>";
-                await _botClient.SendTextMessageAsync(item.ChatId, text, parseMode: ParseMode.Html, disableNotification:true);
+                await _botClient.SendTextMessageAsync(item.ChatId, text, parseMode: ParseMode.Html, disableNotification: true);
             }
         }
 

@@ -6,6 +6,7 @@ namespace Datalayer.Models
     public class Request : GuidAuditableAggregateRoot
     {
         public Guid UserId { get; set; }
+        public int Key {  get; set; }
         public RequestType? RequestType { get; set; }
         public string? Description { get; set; }
 
