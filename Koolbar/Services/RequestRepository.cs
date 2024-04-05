@@ -86,7 +86,7 @@ namespace Koolbar.Services
             => await NotRemoved
             .Include(x => x.User)
             .Where(x => x.IsCompleted && x.RequestType != request.RequestType && x.UserId != request.UserId &&
-            (x.Source == request.Destination && x.Destination == request.Source) &&
+            (x.Source == request.Source && x.Destination == request.Destination) &&
             (request.RequestType == RequestType.FreightOwner ? x.RequestType == RequestType.Passenger && x.FlightDate < DateTime.Now : true))
             .Select(x=>new RequestDto
             {
