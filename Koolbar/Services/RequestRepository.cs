@@ -71,15 +71,13 @@ namespace Koolbar.Services
                 UserId = x.UserId,
                 RequestStatus = x.RequestStatus,
                 Description = x.Description,
-                Destination = x.Destination,
+                Destination = new CityDto { Title = x.Destination },
                 FlightDate = x.FlightDate,
                 LimitDate = x.LimitDate,
                 RequestType = x.RequestType,
-                Source = x.Source,
-                Username = x.User.UserName,
-                CreatedAt = x.CreatedAt
+                Source = new CityDto { Title = x.Source },
+                Username = x.User.UserName
             })
-            .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
 
         public async Task<List<RequestDto>> SuggestAsync(Request request)
@@ -92,16 +90,15 @@ namespace Koolbar.Services
             {
                 Id = x.Id,
                 ChatId = x.User.ChatId,
-                CreatedAt = DateTime.Now,
                 RequestType = x.RequestType,
                 Description = x.Description,
-                Destination= x.Destination,
+                Destination= new CityDto { Title= x.Destination },
                 FlightDate = x.FlightDate,
                 LimitDate = x.LimitDate,
                 Key = x.Key,
                 MessageId = x.MessageId,
                 RequestStatus = x.RequestStatus,
-                Source  = x.Source,
+                Source  = new CityDto { Title = x.Source },
                 UserId = x.UserId,
                 Username = x.User.UserName
             })

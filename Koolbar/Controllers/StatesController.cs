@@ -1,5 +1,4 @@
-﻿using Datalayer.Models;
-using Koolbar.Dtos;
+﻿using Koolbar.Dtos;
 using Koolbar.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,14 +23,19 @@ namespace Koolbar.Controllers
                 var city = await _stateRepository.SearchAsync(q);
                 return city.Select(x => new CityDto
                 {
-                    Id = x.Id,
                     Title = x.Title,
                     PersianTitle = x.PersianTitle,
-                    CountryTitle = x.State.Title,
-                    StateTitle = x.State.Country.Title,
-                    StateId = x.StateId,
-                    Lat = x.Lat,
-                    Long = x.Long
+                    State = new StateDto
+                    {
+                        Title = x.State.Title,
+                        PersianTitle = x.State.PersianTitle,
+                        Country = new CountryDto
+                        {
+                            PersianTitle = x.State.Country.PersianTitle,
+                            Title = x.State.Country.Title,
+                            Emoji = x.State.Country.Emoji
+                        }
+                    }
                 }).ToList();
             }
             catch (Exception ex)

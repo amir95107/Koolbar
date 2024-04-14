@@ -17,7 +17,8 @@ namespace Koolbar.Controllers
             UserManager = userManager;
         }
 
-        public async Task<IActionResult> CreateAsync(UserDto user)
+        [HttpPost]
+        public async Task<IActionResult> CreateAsync0(UserDto user)
         {
             await UserManager.CreateAsync(new User
             {

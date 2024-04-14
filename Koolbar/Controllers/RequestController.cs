@@ -36,10 +36,16 @@ namespace Koolbar.Controllers
             {
                 RequestStatus = existingRequest.RequestStatus,
                 Description = existingRequest.Description,
-                Destination = existingRequest.Destination,
+                Destination = new CityDto
+                {
+                    Title = existingRequest.Destination
+                },
                 FlightDate = existingRequest.FlightDate,
                 RequestType = existingRequest.RequestType,
-                Source = existingRequest.Source,
+                Source = new CityDto
+                {
+                    Title = existingRequest.Source
+                },
                 UserId = existingRequest.UserId
             };
         }
@@ -75,10 +81,10 @@ namespace Koolbar.Controllers
                     ChatId = request.ChatId,
                     Username = request.Username,
                     Description = existingRequest.Description,
-                    Destination = existingRequest.Destination,
+                    Destination = new CityDto { Title = existingRequest.Destination },
                     FlightDate = existingRequest.FlightDate,
                     RequestType = existingRequest.RequestType,
-                    Source = existingRequest.Source,
+                    Source = new CityDto { Title= existingRequest.Source },
                     UserId = existingRequest.UserId
                 };
 
@@ -108,7 +114,7 @@ namespace Koolbar.Controllers
             var existiongRequest = await _requestRepository.GetRequestByChatIdAsync(request.ChatId);
             if (existiongRequest != null && existiongRequest.RequestType != null)
             {
-                existiongRequest.Source = request.Source;
+                existiongRequest.Source = request.Source.Title;
                 existiongRequest.RequestStatus = RequestStatus.SourceDeclared;
                 _requestRepository.Modify(existiongRequest);
                 await _requestRepository.SaveChangesAsync();
@@ -123,7 +129,7 @@ namespace Koolbar.Controllers
                 existiongRequest.RequestType != null &&
                 existiongRequest.Source != null)
             {
-                existiongRequest.Destination = request.Destination;
+                existiongRequest.Destination = request.Destination.Title;
                 existiongRequest.RequestStatus = RequestStatus.DestinationDeclared;
                 _requestRepository.Modify(existiongRequest);
                 await _requestRepository.SaveChangesAsync();
@@ -185,7 +191,7 @@ namespace Koolbar.Controllers
         }
 
         [HttpPost("all")]
-        public async Task<ActionResult<RequestDto>> AddAllRequest([FromBody] RequestDto request)
+        public async Task<ActionResult<RequestContract>> AddAllRequest([FromBody] RequestContract request)
         {
             var user = await UserManager.FindByNameAsync(request.Username.ToUpper());
 
@@ -242,12 +248,12 @@ namespace Koolbar.Controllers
             {
                 UserId = user.Id,
                 Description = request.Description,
-                Destination = request.Destination,
+                Destination = request.Destination.Title,
                 FlightDate = request.FlightDate,
                 LimitDate = request.LimitDate,
                 RequestStatus = request.RequestStatus,
                 RequestType = request.RequestType,
-                Source = request.Source,
+                Source = request.Source.Title,
                 IsCompleted = true,
                 MessageId = request.MessageId,
                 Key = key.Value + 1,

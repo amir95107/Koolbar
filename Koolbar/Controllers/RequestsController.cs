@@ -80,11 +80,11 @@ namespace Koolbar.Controllers
                 {
                     UserId = user.Id,
                     Description = request.Description,
-                    Destination = request.Destination,
+                    Destination = request.Destination.Title,
                     FlightDate = request.FlightDate,
                     LimitDate = request.LimitDate,
                     RequestStatus = request.RequestType == RequestType.Passenger ? RequestStatus.FlightDateDeclared : RequestStatus.DescriptionDeclared,
-                    Source = request.Source,
+                    Source = request.Source.Title,
                     RequestType = request.RequestType
                 };
                 await _requestRepository.AddAsync(req);
@@ -133,11 +133,11 @@ namespace Koolbar.Controllers
             {
                 UserId = user.Id,
                 Description = request.Description,
-                Destination = request.Destination,
+                Destination = new CityDto { Title = request.Destination },
                 FlightDate = request.FlightDate,
                 LimitDate = request.LimitDate,
                 RequestStatus = request.RequestType == RequestType.Passenger ? RequestStatus.FlightDateDeclared : RequestStatus.DescriptionDeclared,
-                Source = request.Source,
+                Source = new CityDto { Title = request.Source },
                 RequestType = request.RequestType
             };
             return View(req);
@@ -161,8 +161,8 @@ namespace Koolbar.Controllers
                     req.LimitDate = request.LimitDate;
                     req.FlightDate = request.FlightDate;
                     req.Description = request.Description;
-                    req.Destination = request.Destination;
-                    req.Source = request.Source;
+                    req.Destination = request.Destination.Title;
+                    req.Source = request.Source.Title;
                     req.RequestType = request.RequestType;
 
                     _requestRepository.Modify(req);

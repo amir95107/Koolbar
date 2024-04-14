@@ -8,9 +8,8 @@ namespace KoolbarTelegramBot.Dtos
 {
     public class CountryDto
     {
-        public Guid Id { get; set; }
         public string Title { get; set; }
         public string? PersianTitle { get; set; }
-        public int CountryNumber { get; set; }
+        public string? Emoji { get; set; }
     }
 }
