@@ -3,6 +3,7 @@ using Koolbar.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Koolbar.Controllers
 {
@@ -26,6 +27,16 @@ namespace Koolbar.Controllers
             });
 
             return (IActionResult)Task.CompletedTask;
+        }
+
+        [HttpGet("chatids")]
+        public async Task<ActionResult<List<long>>> GetAllChatIds()
+        {
+            return await UserManager
+                .Users
+                .Where(x => !x.MuteNotification)
+                .Select(x => x.ChatId)
+                .ToListAsync();
         }
     }
 }

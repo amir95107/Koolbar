@@ -45,6 +45,20 @@ namespace Datalayer.Data
                     .HasForeignKey(m => m.ContryId)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_Country_States");
+
+            modelBuilder.Entity<WalletHistory>()
+                    .HasOne(x => x.Wallet)
+                    .WithMany(x => x.WalletHistories)
+                    .HasForeignKey(m => m.WalletId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_Wallet_WalletHistories");
+
+            modelBuilder.Entity<Wallet>()
+                    .HasOne(x => x.User)
+                    .WithOne(x => x.Wallet)
+                    .HasForeignKey<Wallet>(m => m.UserId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_User_Wallet");
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Datalayer.Enumerations;
 using Koolbar.Dtos;
 using KoolbarTelegramBot.HttpClientProvider;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -18,10 +19,12 @@ namespace KoolbarTelegramBot
         private static Dictionary<string, RequestDto> Requests = new Dictionary<string, RequestDto>();
         //
 #if DEBUG
-        private const long ChannelId = -1001974756992;
+        private const long ChannelId = -1002095988136;
 #else 
     private const long ChannelId = -1001974756992;
 #endif
+        private static List<string> Admins = ["Amirhosseinjnmi", "abolfazl_rezaiee"];
+        private static DateTime? SendNotifHistory;
 
         public BotEngine(TelegramBotClient botClient)
         {
@@ -175,6 +178,19 @@ namespace KoolbarTelegramBot
                     await HandleCommands(text.Split(' ')[0], message.Chat.Id);
                 }
 
+                if (text.StartsWith("#sta"))
+                {
+                    text = text.Split('\n')[1];
+                    await SendMessageToAll(Username, text);
+                    return;
+                }
+
+                if (text.StartsWith("#ncj"))
+                {
+                    await NotifForCompleteJourney(Username);
+                    return;
+                }
+
                 if (Requests.Keys.Contains(Username))
                 {
                     switch (Requests[Username].RequestStatus)
@@ -255,7 +271,7 @@ namespace KoolbarTelegramBot
 
         private async Task HandleCreateCommands(long id, string _type = "")
         {
-            ClearifyRequests(DateTime.Now.AddDays(-1));
+            ClearifyRequests(DateTime.Now.AddDays(-3));
             var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, id);
 
             try
@@ -279,11 +295,16 @@ namespace KoolbarTelegramBot
 
             InlineKeyboardButton urlButton = new InlineKeyboardButton("مسافر هستم ✈️");
             InlineKeyboardButton urlButton2 = new InlineKeyboardButton("ارسال بار 📦");
+            InlineKeyboardButton urlButton3 = new InlineKeyboardButton("درخواست خرید 🛍");
+            InlineKeyboardButton urlButton4 = new InlineKeyboardButton("اطلاعات سفر 🗂");
 
             urlButton.CallbackData = "type-" + RequestType.Passenger.ToString();
             urlButton2.CallbackData = "type-" + RequestType.FreightOwner.ToString();
+            urlButton3.Url = "https://t.me/vlansupport";
+            urlButton4.Url = "https://t.me/Flightiranbot";
 
-            var buttons = new InlineKeyboardButton[] { urlButton, urlButton2 };
+
+            var buttons = new List<List<InlineKeyboardButton>> { new List<InlineKeyboardButton> { urlButton }, new List<InlineKeyboardButton> { urlButton2 }, new List<InlineKeyboardButton> { urlButton3 }, new List<InlineKeyboardButton> { urlButton4 } };
 
             // Keyboard markup
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
@@ -320,7 +341,11 @@ namespace KoolbarTelegramBot
             }
             catch (Exception ex)
             {
-
+                if (ex.Message.StartsWith("The given key"))
+                {
+                    await HandleCreateCommands(chatid, "");
+                    return;
+                }
                 await _botClient.SendTextMessageAsync(chatid, ex.Message);
                 return;
             }
@@ -632,6 +657,68 @@ namespace KoolbarTelegramBot
 
                 await _botClient.SendTextMessageAsync(item.ChatId, text, parseMode: ParseMode.Html, disableNotification: true);
             }
+        }
+
+        private async Task SendMessageToAll(string username, string message)
+        {
+            if (AuthenticateUser(username))
+            {
+                try
+                {
+                    var result = await ApiCall.GetAsync<List<long>>("user/chatids");
+                    if (result != null)
+                    {
+                        foreach (var item in result)
+                        {
+                            try
+                            {
+                                await _botClient.SendTextMessageAsync(new ChatId(item), message);
+                            }
+                            catch (Exception)
+                            {
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await _botClient.SendTextMessageAsync(266809220, ex.Message);
+                    return;
+                }
+            }
+        }
+
+        private async Task NotifForCompleteJourney(string username)
+        {
+            if (AuthenticateUser(username))
+            {
+                if (SendNotifHistory != null && SendNotifHistory.Value.AddDays(1) > DateTime.Now)
+                {
+                    await _botClient.SendTextMessageAsync(username, "در 24 ساعت گذشته 1 بار پیام ارسال شده.");
+                    return;
+                }
+                if (Requests != null)
+                {
+                    foreach (var item in Requests)
+                    {
+                        var message = $"کاربر گرامی: {item.Value.Username} \n\n" +
+                            "شما درخواست ناتمامی دارید؛ لطفا به تمکیل آن اقدام نمایید و در صورت بروز هرگونه مشکل حین ثبت درخواست، به پشتیبانی پیام دهید. \n\n"+
+                            "<a href='https://t.me/vlansupport'>@vlansupport</a>";
+                        try
+                        {
+                            await _botClient.SendTextMessageAsync(new ChatId(item.Value.ChatId), message, parseMode:ParseMode.Html, disableWebPagePreview:true);
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                }
+            }
+        }
+
+        private bool AuthenticateUser(string username)
+        {
+            return Admins.Contains(username);
         }
 
         private static InlineKeyboardMarkup GetDayPickerInlineKeyboard()
