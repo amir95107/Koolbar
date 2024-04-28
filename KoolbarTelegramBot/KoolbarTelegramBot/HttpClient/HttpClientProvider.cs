@@ -76,10 +76,10 @@ _client.BaseAddress = new Uri("http://localhost:5000/api/");
                 }
                 throw new Exception(await request.RequestMessage.Content.ReadAsStringAsync());
             }
-            catch
+            catch(Exception ex)
             {
 
-                throw new Exception($"خطا در سرویس {url}");
+                throw new Exception($"خطا در سرویس {url} \n {ex.Message}");
             }
         }
     }
