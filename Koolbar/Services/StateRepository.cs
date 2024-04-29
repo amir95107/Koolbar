@@ -27,7 +27,7 @@ namespace Koolbar.Services
            => await _cities
             .Include(x=>x.State)
             .ThenInclude(x=>x.Country)
-            .Where(x=>x.Title.Contains(q))
+            .Where(x=>x.Title.StartsWith(q))
             //.DistinctBy(x=>x.Title)
             .Take(10)
             .OrderBy(x => x.Title)
