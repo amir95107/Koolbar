@@ -7,6 +7,7 @@ public static class RegisterServices
     {
         builder.Services.AddScoped<IRequestRepository, RequestRepository>();
         builder.Services.AddScoped<IStateRepository, StateRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
         
     }
 }

@@ -44,5 +44,25 @@ namespace Koolbar.Controllers
                 throw;
             }
         }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string q)
+        {
+            try
+            {
+                var city = await _stateRepository.SearchAsync(q);
+                var result = city.Select(x => new
+                {
+                    id = x.Id,
+                    text = $"{x.Title} - {x.State.Title} - {x.State.Country.Title} - {x.State.Country.Emoji}"
+                }).ToList();
+                return Ok(new { results = result });
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
     }
 }

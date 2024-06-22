@@ -206,7 +206,12 @@ namespace Koolbar.Controllers
                 user = await UserManager.FindByNameAsync(request.Username);
             }
 
-            var existingRequest = await _requestRepository.GetRequestsByChatIdAsync(request.ChatId);
+            if (user.IsBanned)
+            {
+                throw new Exception("Unfortunatley your account is banned by koolbar policy and you can not create a request!");
+            }
+
+            //var existingRequest = await _requestRepository.GetRequestsByChatIdAsync(request.ChatId);
 
             //if (existingRequest is null || existingRequest.Count == 0)
             //{

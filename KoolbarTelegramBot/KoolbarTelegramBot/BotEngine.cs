@@ -25,6 +25,10 @@ namespace KoolbarTelegramBot
 #endif
         private static List<string> Admins = ["Amirhosseinjnmi", "abolfazl_rezaiee"];
         private static DateTime? SendNotifHistory;
+        private const string _baseUrl = "https://koolbar.com";
+        //private const string _baseUrl = "https://localhost:7171";
+        private static int _startClickCount;
+        private static int _webClickCount;
 
         public BotEngine(TelegramBotClient botClient)
         {
@@ -51,7 +55,7 @@ namespace KoolbarTelegramBot
             Console.WriteLine("Telegram bot is start running...");
         }
 
-        private readonly string[] CurrentCommandList = ["/start"];
+        private readonly string[] CurrentCommandList = ["/start", "/web"];
 
 
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -93,7 +97,11 @@ namespace KoolbarTelegramBot
                                 "<a href='https://t.me/koolbar_international'>@koolbar_international</a>";
 
                     InlineKeyboardButton urlButton = new InlineKeyboardButton("عضو شدم");
-                    urlButton.CallbackData = "joined";
+                    var t = string.Empty;
+                    if (update.Message != null)
+                        t = update.Message.Text;
+
+                    urlButton.CallbackData = "joined" + (t == "/start web" ? "-web" : "");
                     var buttons = new InlineKeyboardButton[] { urlButton };
                     InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
 
@@ -158,6 +166,10 @@ namespace KoolbarTelegramBot
                         {
                             await HandleCreateCommands(chatId, "");
                         }
+                        if (update.CallbackQuery.Data is "joined-web")
+                        {
+                            await HandleWebCommands(chatId);
+                        }
                     }
                 }
 
@@ -175,7 +187,10 @@ namespace KoolbarTelegramBot
 
                 if (text.StartsWith("/"))
                 {
-                    await HandleCommands(text.Split(' ')[0], message.Chat.Id);
+                    if (text == "/start web")
+                        await HandleWebCommands(chatId);
+                    else
+                        await HandleCommands(text.Split(' ')[0], message.Chat.Id);
                 }
 
                 if (text.StartsWith("#sta"))
@@ -231,7 +246,7 @@ namespace KoolbarTelegramBot
             catch (Exception ex)
             {
                 await _botClient.SendTextMessageAsync(266809220, ex.Message);
-                if (chatId > 0)
+                if (chatId > 0 && !ex.Message.Contains("blocked"))
                     await _botClient.SendTextMessageAsync(chatId, "An error occured; Please wait... We try to fix the error as soon as possible.");
             }
         }
@@ -251,7 +266,24 @@ namespace KoolbarTelegramBot
                 case "/start":
                     await HandleCreateCommands(id, "");
                     break;
+
+                case "/web":
+                    await HandleWebCommands(id);
+                    break;
             }
+        }
+
+        private async Task HandleWebCommands(long id)
+        {
+            _webClickCount++;
+            var url = $"{_baseUrl}/create/{id}";
+            InlineKeyboardButton urlButton = new InlineKeyboardButton("🌐");
+            urlButton.Url = url;
+            var buttons = new List<List<InlineKeyboardButton>> { new List<InlineKeyboardButton> { urlButton } };
+            // Keyboard markup
+            InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
+            // Send message!
+            await _botClient.SendTextMessageAsync(id, "ادامه در وب اپلیکیشن کولبر.", replyMarkup: inline, disableWebPagePreview: true);
         }
 
         private async Task HandleStartCommands(long id, string v)
@@ -271,6 +303,7 @@ namespace KoolbarTelegramBot
 
         private async Task HandleCreateCommands(long id, string _type = "")
         {
+            _startClickCount++;
             ClearifyRequests(DateTime.Now.AddDays(-3));
             var userChannelsStatus = await _botClient.GetChatMemberAsync(-1001974756992, id);
 
@@ -543,7 +576,7 @@ namespace KoolbarTelegramBot
         private async Task<List<RequestDto>> GenerateSuggestedText(long id, int requestType, string? username, bool showInChannel = true)
         {
             var text = "درخواست شما در کانال ثبت شد. \n" +
-                "<a href='https://t.me/koolbar_international'>کانال اطلاع رسانی کولبر</a>";
+                "<a href='https://t.me/koolbar_international'>مشاهده درخواست در کانال</a>";
 
             if (showInChannel)
             {
@@ -573,15 +606,24 @@ namespace KoolbarTelegramBot
         {
             var request = Requests[username];
             var key = 0;
+            bool isVerified = false;
             try
             {
                 var result = await ApiCall.PostAsync("requests/all", request);
                 key = result.Key;
+                isVerified = result.IsVerified;
             }
             catch (Exception ex)
             {
-                await _botClient.SendTextMessageAsync(266809220, ex.Message);
-                await _botClient.SendTextMessageAsync(chatId, "An error occured; Please wait... We try to fix the error as soon as possible.");
+                await _botClient.SendTextMessageAsync(266809220, username + ": " + ex.Message);
+                if (ex.Message.StartsWith("Unfortunatley"))
+                {
+                    await _botClient.SendTextMessageAsync(chatId, ex.Message);
+                }
+                else
+                {
+                    await _botClient.SendTextMessageAsync(chatId, "An error occured; Please wait... We try to fix the error as soon as possible.");
+                }
                 return;
             }
 
@@ -590,13 +632,15 @@ namespace KoolbarTelegramBot
             var flightDateTxt = (request.RequestType == RequestType.FreightOwner ? "" : "\n\n تاریخ پرواز: " + request.FlightDate!.Value.ToString("yyyy/MM/dd")) + "\n\n";
             var text = Repeat(emoji, 6) + "\n\n" +
                 $"id: {key} \n\n" +
+                (isVerified ? $" {Emojies.Check} کاربر وریفای شده {Emojies.Check}" + "\n\n" : null) +
                 $"{request.Source.State.Country.Emoji ?? request.Source.State.Country.Title} -> {request.Destination.State.Country.Emoji ?? request.Destination.State.Country.Title} \n\n" +
                 $"#{typeStr} \n\n" +
                 $"مبدا: {request.Source.Title} \n\n" +
                 $"مقصد: {request.Destination.Title}" +
                 $"{flightDateTxt}" +
                 $"توضیحات: \n {request.Description} \n\n" +
-                $"<a href='https://t.me/koolbar_bot'>@koolbar_bot 🤖</a>";
+                $"<a href='https://t.me/koolbar_bot'>@koolbar_bot 🤖</a>" +
+                (isVerified ? $"\n<a href='https://t.me/koolbar_international/1039'>فرآیند وریفای چگونه است؟</a>" :"");
 
             InlineKeyboardButton urlButton = new InlineKeyboardButton("پیام به کاربر");
             urlButton.Url = $"https://t.me/{username}";
@@ -702,11 +746,11 @@ namespace KoolbarTelegramBot
                     foreach (var item in Requests)
                     {
                         var message = $"کاربر گرامی: {item.Value.Username} \n\n" +
-                            "شما درخواست ناتمامی دارید؛ لطفا به تمکیل آن اقدام نمایید و در صورت بروز هرگونه مشکل حین ثبت درخواست، به پشتیبانی پیام دهید. \n\n"+
+                            "شما درخواست ناتمامی دارید؛ لطفا به تمکیل آن اقدام نمایید و در صورت بروز هرگونه مشکل حین ثبت درخواست، به پشتیبانی پیام دهید. \n\n" +
                             "<a href='https://t.me/vlansupport'>@vlansupport</a>";
                         try
                         {
-                            await _botClient.SendTextMessageAsync(new ChatId(item.Value.ChatId), message, parseMode:ParseMode.Html, disableWebPagePreview:true);
+                            await _botClient.SendTextMessageAsync(new ChatId(item.Value.ChatId), message, parseMode: ParseMode.Html, disableWebPagePreview: true);
                         }
                         catch (Exception)
                         {

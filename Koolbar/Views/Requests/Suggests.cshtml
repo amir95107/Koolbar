@@ -1,0 +1,85 @@
+﻿@using Datalayer.Models
+@using Koolbar.Dtos
+@model IEnumerable<RequestDto>
+@{
+    var current = ViewBag.CurrentRequest as Request;
+}
+
+<div class="row justify-content-center h-100" dir="rtl">
+    <div class="col-md-6 text-center">
+        <div class="mb-4 mt-4">
+            مبدا: @current.Source
+            <br />
+            مقصد: @current.Destination
+        </div>
+        @if (Model.Any())
+        {
+            @foreach (var item in Model)
+            {
+                <div class="border mb-3">
+                    <a href="https://t.me/@item.Username">@item.Username</a>
+                    <br />
+                    @item.Description
+                    @if (item.RequestType == Datalayer.Enumerations.RequestType.Passenger)
+                    {
+                        <br />
+                        <span ltr>تاریخ پرواز: @item.FlightDate.Value.ToString("dd/MM/yyyy")</span>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <span>در حال حاضر درخواست شما با هیچ فردی تطابق نداشت!</span>
+        }
+    </div>
+</div>
+@section Styles {
+    <style>
+        body {
+            background-color: #141526;
+        }
+
+        div, label {
+            color: #fff
+        }
+
+        input, select {
+            text-align: center
+        }
+
+            input[type='text'], input[type='date'], select, .select2-container .select2-selection--single {
+                height: 3.5rem !important
+            }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100% !important
+        }
+
+        textarea {
+            min-height: 15rem !important
+        }
+
+        label {
+            margin-bottom: .4rem
+        }
+
+        .form-group {
+            margin-bottom: 1rem
+        }
+
+        .border {
+            border: 2px #26c5dd solid !important;
+            color: #26c5dd;
+        }
+
+        .button-wrapper {
+            min-height: 300px;
+            margin: auto 0
+        }
+
+        .btn-custom:hover {
+            background-image: linear-gradient(rgba(20, 21, 38, .95), rgba(20, 21, 38, .95)), linear-gradient(to bottom, #2de5d1, #1fa4e9);
+        }
+    </style>
+}

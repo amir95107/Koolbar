@@ -1,57 +1,69 @@
 ﻿@using Datalayer.Enumerations
 @using Koolbar.Dtos
+@using Koolbar.Services
 @model RequestDto
 @{
+    //var user = ViewBag.User as Datalayer.Models.User;
+    // var cities = ViewBag.MostPopularCities;
     ViewData["Title"] = "Create";
 }
 
-<h1>Create</h1>
-
-<hr />
-
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create" method="post">
+<div class="row justify-content-center h-100">
+    <div class="col-md-4 text-center">
+        <form action="/requests/create" method="post" class="m-auto" onsubmit="submit(event)">
             <div class="form-group">
-                <label asp-for="Username" class="control-label"></label>
-                <input asp-for="Username" class="form-control" />
-                <span asp-validation-for="UserId" class="text-danger"></span>
+                <input type="hidden" value="@Context.Request.Path.ToString().Split('/').Last()" name="ChatId" />
             </div>
             <div class="form-group">
-                <label asp-for="RequestType" class="control-label"></label>
-                <select asp-for="RequestType" class="form-control">
-                    <option  value="@RequestType.Passenger">Passenger</option>
-                    <option  value="@RequestType.FreightOwner">FreightOwner</option>
+                <label asp-for="RequestType" class="control-label">نوع درخواست</label>
+                <select asp-for="RequestType" class="form-control" onchange="changeType(this.value)">
+                    <option value="@RequestType.Passenger">مسافر</option>
+                    <option value="@RequestType.FreightOwner">دارای بار</option>
                 </select>
                 <span asp-validation-for="RequestType" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <textarea asp-for="Description" class="form-control"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Source" class="control-label"></label>
+                <label asp-for="Source" class="control-label w-100">مبدا</label>
+                @*
                 <input asp-for="Source" class="form-control" />
-                <span asp-validation-for="Source" class="text-danger"></span>
+                <span asp-validation-for="Source" class="text-danger"></span> *@
+                <input type="hidden" name="SourceCityId" id="SourceCityId" />
+                <input type="hidden" name="Source" id="Source" />
+                <select name="SourceSearch" class="form-control selectpicker" id="SourceSearch" data-show-subtext="true" data-live-search="true">
+                    <!-- City options will be dynamically added here -->
+                    @* @foreach(var item in cities[0])
+                    {
+                        <option>@item.City</option>
+                    } *@
+                </select>
             </div>
             <div class="form-group">
-                <label asp-for="Destination" class="control-label"></label>
+                <label asp-for="Destination" class="control-label w-100">مقصد</label>
+                <input type="hidden" name="DestinationCityId" id="DestinationCityId" />
+                <input type="hidden" name="Destination" id="Destination" />
+                @*
                 <input asp-for="Destination" class="form-control" />
-                <span asp-validation-for="Destination" class="text-danger"></span>
+                <span asp-validation-for="Destination" class="text-danger"></span> *@
+                <select class="form-control selectpicker" name="DestinationSearch" id="DestinationSearch" data-live-search="true">
+                    @* @foreach (var item in cities[1])
+                    {
+                        <option>@item.City</option>
+                    } *@
+                </select>
             </div>
-            <div class="form-group">
-                <label asp-for="FlightDate" class="control-label"></label>
+            <div class="form-group" id="FlightDate_wrapper">
+                <label asp-for="FlightDate" class="control-label">تاریخ پرواز</label>
                 <input asp-for="FlightDate" type="date" class="form-control" />
                 <span asp-validation-for="FlightDate" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="LimitDate" class="control-label"></label>
-                <input asp-for="LimitDate" type="date" class="form-control" />
-                <span asp-validation-for="LimitDate" class="text-danger"></span>
+                <label asp-for="Description" class="control-label">توضیحات</label>
+                <textarea asp-for="Description" class="form-control"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
             </div>
+
             <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+                <button type="button" onclick="submit(event)" value="Create" class="btn btn-custom border">ثبت</button>
             </div>
         </form>
     </div>
@@ -60,9 +72,126 @@
 <div>
     <a asp-action="Index">Back to List</a>
 </div>
+@section Styles {
+    <style>
+        body {
+            background-color: #141526;
+        }
 
+        div, label {
+            color: #fff
+        }
+
+        input,select {
+            text-align:center
+        }
+
+            input[type='text'], input[type='date'], select, .select2-container .select2-selection--single {
+                                    height: 3.5rem !important
+                                }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow{
+            height: 100% !important
+        }
+        textarea {
+            min-height: 15rem !important
+        }
+
+        label {
+            margin-bottom: .4rem
+        }
+
+        .form-group {
+            margin-bottom: 1rem
+        }
+
+        .border {
+            border: 2px #26c5dd solid !important;
+            color: #26c5dd;
+        }
+
+        .button-wrapper {
+            min-height: 300px;
+            margin: auto 0
+        }
+
+        .btn-custom:hover {
+            background-image: linear-gradient(rgba(20, 21, 38, .95), rgba(20, 21, 38, .95)), linear-gradient(to bottom, #2de5d1, #1fa4e9);
+        }
+    </style>
+}
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.selectpicker').select2({
+                ajax: {
+                    delay: 250,
+                    url: '/api/states/search',
+                    data: function (params) {
+                        var query = {
+                            q: params.term
+                        }
+
+                        // Query parameters will be ?search=[term]&type=public
+                        return query;
+                    },
+                    minimumInputLength: 3
+                }
+            });
+        });
+
+        $('#SourceSearch').on('change', () => {
+            var id = $('#SourceSearch').val()
+            var title = $('#SourceSearch > option').html().split('-')[0].trim()
+            $('#Source').val(title)
+            $('#SourceCityId').val(id)
+        });
+
+        $('#DestinationSearch').on('change', () => {
+            var id = $('#DestinationSearch').val()
+            var title = $('#DestinationSearch > option').html().split('-')[0].trim()
+            $('#Destination').val(title)
+            $('#DestinationCityId').val(id)
+        });
+
+        function submit(e) {
+            debugger
+            var data = JSON.stringify({
+                requestType: $('#RequestType').val(),
+                source: $('#Source > option').html().split('-')[0].trim(),
+                sourceCityId: $('#Source').val(),
+                destination: $('#Destination > option').html().split('-')[0].trim(),
+                destinationCityId: $('#Destination').val(),
+                flightDate: $('#FlightDate').val(),
+                description: $('#Description').val(),
+            });
+            e.preventDefault()
+            $.ajax({
+                url: '/create', // Replace with your actual server URL
+                type: 'POST', // Specify the HTTP method (GET, POST, etc.)
+                contentType: 'application/json',
+                data: data, // Data to send to the server (adjust keys and values as needed)
+                success: function (response) {
+                    // Handle the successful response here
+                    console.log('Response:', response);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    // Handle any errors that occur during the request
+                    console.error('Error:', textStatus, errorThrown);
+                }
+            });
+        }
+
+        function changeType(id) {
+            debugger;
+            if (id == 'Passenger') {
+                $('#FlightDate_wrapper').show()
+            } else {
+                $('#FlightDate_wrapper').hide()
+            }
+        }
+    </script>
 }

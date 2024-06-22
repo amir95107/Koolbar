@@ -23,6 +23,19 @@ namespace Koolbar.Dtos
         //public List<RequestDto> Requests { get; set; }
     }
 
+    public class RequestsDto
+    {
+        public string? Username { get; set; }
+        public long ChatId { get; set; }
+        public RequestType RequestType { get; set; }
+        public string Source { get; set; }
+        public string? SourceCityId { get; set; }
+        public string Destination { get; set; }
+        public string? DestinationCityId { get; set; }
+        public DateTime FlightDate { get; set; }
+        public string Description { get; set; }
+    }
+
     public class RequestContract
     {
         //public Guid Id { get; set; }
@@ -46,6 +59,7 @@ namespace Koolbar.Dtos
 
     public class CityDto
     {
+        public Guid Id { get; set; }
         public string Title { get; set; }
         public string? PersianTitle { get; set; }
         public StateDto State { get; set; }
