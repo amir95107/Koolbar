@@ -12,8 +12,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 var configuration = builder.Configuration;
 
-builder.Services.AddDbContext<ApplicationDBContext>(options =>
-    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+//builder.Services.AddDbContext<ApplicationDBContext>(options =>
+//    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddDbContext<ApplicationDBContext>((serviceProvider, optionsBuilder) =>
+{
+    optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
 
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 {
