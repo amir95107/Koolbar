@@ -109,11 +109,16 @@ namespace Koolbar.Services
 
         public async Task<List<RequestDto>> SuggestAsync(Request request)
         {
-            var req = await NotRemoved
-            .Include(x => x.User)
-            .Where(x => x.IsCompleted && x.RequestType != request.RequestType && x.UserId != request.UserId &&
-            (x.Source == request.Source && x.Destination == request.Destination) &&
-            (request.RequestType == RequestType.FreightOwner ? x.RequestType == RequestType.Passenger && x.FlightDate < DateTime.Now : true))
+            var query = NotRemoved
+                .Include(x => x.User)
+                .AsNoTracking()
+                .Where(x => x.CreatedAt > DateTime.Now.AddDays(-30) 
+                && (request.RequestType == RequestType.FreightOwner ? x.RequestType == RequestType.Passenger && x.FlightDate > DateTime.Now : true)
+                && x.RequestType != request.RequestType && x.UserId != request.UserId);
+
+            var req = await query
+            .Where(x => 
+            (x.Source == request.Source && x.Destination == request.Destination))
             .Select(x => new RequestDto
             {
                 Id = x.Id,
@@ -126,36 +131,35 @@ namespace Koolbar.Services
                 Key = x.Key,
                 MessageId = x.MessageId,
                 RequestStatus = x.RequestStatus,
-                Source = new CityDto { Title = x.Source, Id = x.SourceCityId.GetValueOrDefault()  },
+                Source = new CityDto { Title = x.Source, Id = x.SourceCityId.GetValueOrDefault() },
                 UserId = x.UserId,
                 Username = x.User.UserName,
-                
+
             })
             .ToListAsync();
 
-            if (req.Count == 0)
+            if (req.Count < 5)
             {
                 var stateCities = await _cities
                     .Include(x => x.State)
-                    .Where(x => x.Title == request.Destination)
+                    .AsNoTracking()
+                    .Where(x => x.Title == request.Source)
                     .SelectMany(x => x.State.Cities)
                     .ToListAsync();
 
-                var current = stateCities.FirstOrDefault(x => x.Title == request.Destination && (request.DestinationCityId != null ? request.DestinationCityId == x.Id : true));
+                var current = stateCities.FirstOrDefault(x => x.Title == request.Source && (request.SourceCityId != null ? request.SourceCityId == x.Id : true));
                 if (current is null)
                     return null;
 
                 var stateCitiesTitle = stateCities
                     .OrderBy(x => CalculateDistance(current.Lat.GetValueOrDefault(), current.Long.GetValueOrDefault(), x.Lat.GetValueOrDefault(), x.Long.GetValueOrDefault()))
                     .Select(x => x.Title)
-                    .Take(20)
                     .ToList();
 
-                req = await NotRemoved
-            .Include(x => x.User)
-            .Where(x => x.IsCompleted && x.RequestType != request.RequestType && x.UserId != request.UserId &&
-            (x.Source == request.Source && stateCitiesTitle.Contains(x.Destination)) &&
-            (request.RequestType == RequestType.FreightOwner ? x.RequestType == RequestType.Passenger && x.FlightDate < DateTime.Now : true))
+
+                req.AddRange(await query
+            .Where(x =>
+            x.Destination == request.Destination && stateCitiesTitle.Contains(x.Source))
             .Select(x => new RequestDto
             {
                 Id = x.Id,
@@ -173,7 +177,48 @@ namespace Koolbar.Services
                 Username = x.User.UserName
             })
             .Take(20)
-            .ToListAsync();
+            .ToListAsync());
+            
+            }
+
+            if (req.Count < 5)
+            {
+                var stateCities = await _cities
+                    .Include(x => x.State)
+                    .AsNoTracking()
+                    .Where(x => x.Title == request.Destination)
+                    .SelectMany(x => x.State.Cities)
+                    .ToListAsync();
+
+                var current = stateCities.FirstOrDefault(x => x.Title == request.Destination && (request.DestinationCityId != null ? request.DestinationCityId == x.Id : true));
+                if (current is null)
+                    return null;
+
+                var stateCitiesTitle = stateCities
+                    .OrderBy(x => CalculateDistance(current.Lat.GetValueOrDefault(), current.Long.GetValueOrDefault(), x.Lat.GetValueOrDefault(), x.Long.GetValueOrDefault()))
+                    .Select(x => x.Title)
+                    .ToList();
+
+                req.AddRange(await query
+            .Where(x => x.Source == request.Source && stateCitiesTitle.Contains(x.Destination))
+            .Select(x => new RequestDto
+            {
+                Id = x.Id,
+                ChatId = x.User.ChatId,
+                RequestType = x.RequestType,
+                Description = x.Description,
+                Destination = new CityDto { Title = x.Destination },
+                FlightDate = x.FlightDate,
+                LimitDate = x.LimitDate,
+                Key = x.Key,
+                MessageId = x.MessageId,
+                RequestStatus = x.RequestStatus,
+                Source = new CityDto { Title = x.Source },
+                UserId = x.UserId,
+                Username = x.User.UserName
+            })
+            .Take(20)
+            .ToListAsync());
             }
 
             return req;
@@ -209,7 +254,7 @@ namespace Koolbar.Services
             .Take(10)
             .ToListAsync();
 
-        
+
     }
 
     public enum LocationType

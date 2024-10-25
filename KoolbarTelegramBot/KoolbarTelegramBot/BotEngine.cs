@@ -640,7 +640,7 @@ namespace KoolbarTelegramBot
                 $"{flightDateTxt}" +
                 $"توضیحات: \n {request.Description} \n\n" +
                 $"<a href='https://t.me/koolbar_bot'>@koolbar_bot 🤖</a>" +
-                (isVerified ? $"\n<a href='https://t.me/koolbar_international/1039'>فرآیند وریفای چگونه است؟</a>" :"");
+                (isVerified ? $"\n<a href='https://t.me/vlansupport'>فرآیند وریفای چگونه است؟</a>" :"");
 
             InlineKeyboardButton urlButton = new InlineKeyboardButton("پیام به کاربر");
             urlButton.Url = $"https://t.me/{username}";
