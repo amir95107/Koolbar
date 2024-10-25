@@ -19,7 +19,7 @@ namespace KoolbarTelegramBot
         private static Dictionary<string, RequestDto> Requests = new Dictionary<string, RequestDto>();
         //
 #if DEBUG
-        private const long ChannelId = -1002095988136;
+        private const long ChannelId = -1001974756992;
 #else 
     private const long ChannelId = -1001974756992;
 #endif
