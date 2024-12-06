@@ -262,7 +262,10 @@ namespace Koolbar.Controllers
                 IsCompleted = true,
                 MessageId = request.MessageId,
                 Key = key.Value + 1,
+                SourceCityUniqueKey = request.Source.UniqueKey,
+                DestinationCityUniqueKey = request.Destination.UniqueKey
             });
+
             await _requestRepository.SaveChangesAsync();
 
             request.Key = key.Value + 1;

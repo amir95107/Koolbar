@@ -1,4 +1,5 @@
 ﻿using Datalayer.Enumerations;
+using Datalayer.Models;
 using Koolbar.Dtos;
 using KoolbarTelegramBot.HttpClientProvider;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
@@ -286,16 +287,6 @@ namespace KoolbarTelegramBot
             await _botClient.SendTextMessageAsync(id, "ادامه در وب اپلیکیشن کولبر.", replyMarkup: inline, disableWebPagePreview: true);
         }
 
-        private async Task HandleStartCommands(long id, string v)
-        {
-            await _botClient.SendTextMessageAsync(id, $"It is pleasure to use our bot ...");
-        }
-
-        private async Task HandleUpdateCommands(long id, string _type = "")
-        {
-            await _botClient.SendTextMessageAsync(id, "The update command is being executed");
-        }
-
         private bool CheckRequest(string username)
         {
             return Requests[username] != null;
@@ -326,6 +317,8 @@ namespace KoolbarTelegramBot
                 return;
             }
 
+            string startText = $"سلام 👋 !\r\nما اینجاییم تا به شما کمک کنیم که بسته های خود را راحت و سریع تر به خارج از کشور ارسال نمایید و یا ظرفیت خالی چمدان خود را بفروش برسانید .\r\nلطفا یکی از گزینه های زیر را انتخاب نمایید.\r\n\r\nمسافر هستم✈️:\r\nجهت کسب درآمد با استفاده از اشتراک گذاری فضای خالی چمدان\r\n\r\nارسال بار📦:\r\nجهت ارسال کالا و مدارک مجاز به کمک مسافران به سراسر دنیا\r\n\r\nدرخواست خرید🛍:\r\nجهت خرید های اینترنتی و ارسال بار به مقصد مورد نظر\r\n\r\nدستیار سفر✳️:\r\nخدمات متنوعی مانند بلیط های لحظه آخری ، اطلاعات پرواز و ... را به مسافران ارائه می نماید\r\n\r\n<a href='https://t.me/koolbar_international/1910'>قوانین و خط مشی</a>\r\n";
+
             InlineKeyboardButton urlButton = new InlineKeyboardButton("مسافر هستم ✈️");
             InlineKeyboardButton urlButton2 = new InlineKeyboardButton("ارسال بار 📦");
             InlineKeyboardButton urlButton3 = new InlineKeyboardButton("درخواست خرید 🛍");
@@ -343,7 +336,7 @@ namespace KoolbarTelegramBot
             InlineKeyboardMarkup inline = new InlineKeyboardMarkup(buttons);
 
             // Send message!
-            await _botClient.SendTextMessageAsync(id, "نوع درخواست خود را مشخص نمایید.", replyMarkup: inline);
+            await _botClient.SendTextMessageAsync(id, startText, replyMarkup: inline, parseMode:ParseMode.Html, disableWebPagePreview:true);
         }
 
         private void ClearifyRequests(DateTime dateTime)
@@ -400,15 +393,17 @@ namespace KoolbarTelegramBot
             source = source.Split(":")[1];
             var emojiArr = source.Split("(");
             string? emoji = emojiArr.Length > 1 ? emojiArr[1].Split(")")[0] : null;
+
             Requests[username].Source = new CityDto
             {
-                Title = emoji != null ? source.Split("_")[1].Replace($"({emoji})", "").Trim() : source.Split("_")[1].Trim(),
+                UniqueKey = long.Parse(source.Split('-')[0].Trim().ToString()),
+                Title = source.Split('-')[2].Trim().ToString(),
                 State = new Dtos.StateDto
                 {
                     Title = "",
                     Country = new Dtos.CountryDto
                     {
-                        Title = source.Split('_')[0],
+                        Title = source.Split('-')[1],
                         Emoji = emoji
                     }
                 }
@@ -436,17 +431,18 @@ namespace KoolbarTelegramBot
             string? emoji = emojiArr.Length > 1 ? emojiArr[1].Split(")")[0] : null;
             Requests[username].Destination = new CityDto
             {
-                Title = emoji != null ? destination.Split("_")[1].Replace($"({emoji})", "").Trim() : destination.Split("_")[1].Trim(),
+                UniqueKey = long.Parse(destination.Split('-')[0].Trim().ToString()),
+                Title = destination.Split('-')[2].Trim().ToString(),
                 State = new Dtos.StateDto
                 {
                     Title = "",
                     Country = new Dtos.CountryDto
                     {
-                        Title = destination.Split('_')[0],
+                        Title = destination.Split('-')[1],
                         Emoji = emoji
                     }
                 }
-            }; ;
+            };
             Requests[username].RequestStatus = RequestStatus.DestinationDeclared;
 
             var text = "لطفا توضیحات درباره بارهای مورد پذیرش را وارد نمایید:";
@@ -465,7 +461,7 @@ namespace KoolbarTelegramBot
             {
                 var city = cities[i];
                 var emoji = !string.IsNullOrWhiteSpace(city.State.Country.Emoji) ? $" ({city.State.Country.Emoji})" : "";
-                buttonsfour.Add(new KeyboardButton($"{sord}:{city.State.Country.Title}_{city.Title}{emoji}"));
+                buttonsfour.Add(new KeyboardButton($"{sord}:{city.UniqueKey}-{city.State.Country.Title}-{city.Title}{emoji}"));
                 if (cities.Count >= culomn && i % culomn == culomn - 1 || cities.Count < culomn && i == cities.Count - 1)
                 {
                     buttons.Add(buttonsfour);

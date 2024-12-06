@@ -12,11 +12,9 @@ namespace Datalayer.Models
         public string? Description { get; set; }
 
         public string? Source { get; set; }
-        [NotMapped]
-        public Guid? SourceCityId { get; set; }
+        public long? SourceCityUniqueKey { get; set; }
         public string? Destination { get; set; }
-        [NotMapped]
-        public Guid? DestinationCityId { get; set; }
+        public long? DestinationCityUniqueKey { get; set; }
         public DateTime? FlightDate { get; set; }
         public DateTime? LimitDate { get; set; }
 

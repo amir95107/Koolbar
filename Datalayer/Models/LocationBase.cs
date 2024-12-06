@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Datalayer.Models
 {
-    public class LocationBase: GuidAuditableEntity
+    public class LocationBase : GuidAuditableEntity
     {
         public string Title { get; set; }
         public string? PersianTitle { get; set; }

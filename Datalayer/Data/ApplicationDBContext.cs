@@ -59,6 +59,33 @@ namespace Datalayer.Data
                     .HasForeignKey<Wallet>(m => m.UserId)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("FK_User_Wallet");
+
+            modelBuilder.Entity<City>()
+                .Property(e => e.UniqueKey)
+                .ValueGeneratedOnAdd()
+                .HasAnnotation("SqlServer:Identity", "1, 1");
+
+            modelBuilder.Entity<State>()
+                .Property(e => e.UniqueKey)
+                .ValueGeneratedOnAdd()
+                .HasAnnotation("SqlServer:Identity", "1, 1");
+
+            modelBuilder.Entity<Country>()
+               .Property(e => e.UniqueKey)
+               .ValueGeneratedOnAdd()
+               .HasAnnotation("SqlServer:Identity", "1, 1");
+
+            modelBuilder.Entity<City>()
+                .HasIndex(e => e.UniqueKey)
+                .IsUnique();
+
+            modelBuilder.Entity<State>()
+                .HasIndex(e => e.UniqueKey)
+                .IsUnique();
+
+            modelBuilder.Entity<Country>()
+                .HasIndex(e => e.UniqueKey)
+                .IsUnique();
         }
     }
 }

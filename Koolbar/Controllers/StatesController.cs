@@ -23,17 +23,23 @@ namespace Koolbar.Controllers
                 var city = await _stateRepository.SearchAsync(q);
                 return city.Select(x => new CityDto
                 {
+                    Id=x.Id,
                     Title = x.Title,
                     PersianTitle = x.PersianTitle,
+                    UniqueKey = x.UniqueKey,
                     State = new StateDto
                     {
+                        Id=x.State.Id,
                         Title = x.State.Title,
                         PersianTitle = x.State.PersianTitle,
+                        UniqueKey = x.State.UniqueKey,
                         Country = new CountryDto
                         {
+                            Id=x.State.Country.Id,
                             PersianTitle = x.State.Country.PersianTitle,
                             Title = x.State.Country.Title,
-                            Emoji = x.State.Country.Emoji
+                            Emoji = x.State.Country.Emoji,
+                            UniqueKey=x.State.Country.UniqueKey,
                         }
                     }
                 }).ToList();

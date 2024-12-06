@@ -125,13 +125,13 @@ namespace Koolbar.Services
                 ChatId = x.User.ChatId,
                 RequestType = x.RequestType,
                 Description = x.Description,
-                Destination = new CityDto { Title = x.Destination, Id = x.DestinationCityId.GetValueOrDefault() },
+                Destination = new CityDto { Title = x.Destination, UniqueKey = x.DestinationCityUniqueKey.GetValueOrDefault() },
                 FlightDate = x.FlightDate,
                 LimitDate = x.LimitDate,
                 Key = x.Key,
                 MessageId = x.MessageId,
                 RequestStatus = x.RequestStatus,
-                Source = new CityDto { Title = x.Source, Id = x.SourceCityId.GetValueOrDefault() },
+                Source = new CityDto { Title = x.Source, UniqueKey = x.SourceCityUniqueKey.GetValueOrDefault() },
                 UserId = x.UserId,
                 Username = x.User.UserName,
 
@@ -139,27 +139,33 @@ namespace Koolbar.Services
             .ToListAsync();
 
             if (req.Count < 5)
-            {
+            { //equal destination in sources's state
                 var stateCities = await _cities
                     .Include(x => x.State)
                     .AsNoTracking()
-                    .Where(x => x.Title == request.Source)
+                    .Where(x => x.UniqueKey == request.SourceCityUniqueKey)
                     .SelectMany(x => x.State.Cities)
                     .ToListAsync();
 
-                var current = stateCities.FirstOrDefault(x => x.Title == request.Source && (request.SourceCityId != null ? request.SourceCityId == x.Id : true));
+                var current = stateCities
+                    .FirstOrDefault(x => x.UniqueKey == request.SourceCityUniqueKey);
+                
                 if (current is null)
                     return null;
 
-                var stateCitiesTitle = stateCities
-                    .OrderBy(x => CalculateDistance(current.Lat.GetValueOrDefault(), current.Long.GetValueOrDefault(), x.Lat.GetValueOrDefault(), x.Long.GetValueOrDefault()))
-                    .Select(x => x.Title)
+                var stateCitiesKeys = stateCities
+                    .OrderBy(x => 
+                    CalculateDistance(current.Lat.GetValueOrDefault(),
+                                      current.Long.GetValueOrDefault(),
+                                      x.Lat.GetValueOrDefault(),
+                                      x.Long.GetValueOrDefault()))
+                    .Select(x => x.UniqueKey)
                     .ToList();
 
 
                 req.AddRange(await query
             .Where(x =>
-            x.Destination == request.Destination && stateCitiesTitle.Contains(x.Source))
+            x.DestinationCityUniqueKey == request.DestinationCityUniqueKey && stateCitiesKeys.Contains(x.SourceCityUniqueKey!.Value))
             .Select(x => new RequestDto
             {
                 Id = x.Id,
@@ -172,7 +178,7 @@ namespace Koolbar.Services
                 Key = x.Key,
                 MessageId = x.MessageId,
                 RequestStatus = x.RequestStatus,
-                Source = new CityDto { Title = x.Source },
+                Source = new CityDto { Title = x.Source, UniqueKey = x.SourceCityUniqueKey },
                 UserId = x.UserId,
                 Username = x.User.UserName
             })
@@ -186,34 +192,34 @@ namespace Koolbar.Services
                 var stateCities = await _cities
                     .Include(x => x.State)
                     .AsNoTracking()
-                    .Where(x => x.Title == request.Destination)
+                    .Where(x => x.UniqueKey == request.DestinationCityUniqueKey)
                     .SelectMany(x => x.State.Cities)
                     .ToListAsync();
 
-                var current = stateCities.FirstOrDefault(x => x.Title == request.Destination && (request.DestinationCityId != null ? request.DestinationCityId == x.Id : true));
+                var current = stateCities.FirstOrDefault(x => x.UniqueKey == request.SourceCityUniqueKey);
                 if (current is null)
                     return null;
 
-                var stateCitiesTitle = stateCities
+                var stateCitiesKeys = stateCities
                     .OrderBy(x => CalculateDistance(current.Lat.GetValueOrDefault(), current.Long.GetValueOrDefault(), x.Lat.GetValueOrDefault(), x.Long.GetValueOrDefault()))
-                    .Select(x => x.Title)
+                    .Select(x => x.UniqueKey)
                     .ToList();
 
                 req.AddRange(await query
-            .Where(x => x.Source == request.Source && stateCitiesTitle.Contains(x.Destination))
+            .Where(x => x.Source == request.Source && stateCitiesKeys.Contains(x.DestinationCityUniqueKey!.Value))
             .Select(x => new RequestDto
             {
                 Id = x.Id,
                 ChatId = x.User.ChatId,
                 RequestType = x.RequestType,
                 Description = x.Description,
-                Destination = new CityDto { Title = x.Destination },
+                Destination = new CityDto { Title = x.Destination, UniqueKey = x.DestinationCityUniqueKey },
                 FlightDate = x.FlightDate,
                 LimitDate = x.LimitDate,
                 Key = x.Key,
                 MessageId = x.MessageId,
                 RequestStatus = x.RequestStatus,
-                Source = new CityDto { Title = x.Source },
+                Source = new CityDto { Title = x.Source, UniqueKey = x.SourceCityUniqueKey },
                 UserId = x.UserId,
                 Username = x.User.UserName
             })

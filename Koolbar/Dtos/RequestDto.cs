@@ -17,7 +17,7 @@ namespace Koolbar.Dtos
         public DateTime? FlightDate { get; set; }
         public DateTime? LimitDate { get; set; }
         public string? Description { get; set; }
-        public string? ErrorMessage {  get; set; } 
+        public string? ErrorMessage { get; set; }
         //public DateTime? CreatedAt { get; set; }
 
         //public List<RequestDto> Requests { get; set; }
@@ -48,7 +48,7 @@ namespace Koolbar.Dtos
         public CityDto Source { get; set; }
         public CityDto Destination { get; set; }
         public string? Username { get; set; }
-        
+
         public DateTime? FlightDate { get; set; }
         public DateTime? LimitDate { get; set; }
         public string? Description { get; set; }
@@ -57,25 +57,26 @@ namespace Koolbar.Dtos
         //public List<RequestDto> Requests { get; set; }
     }
 
-    public class CityDto
+    public abstract class LocationBaseDto
     {
         public Guid Id { get; set; }
+        public long? UniqueKey { get; set; }
         public string Title { get; set; }
         public string? PersianTitle { get; set; }
+    }
+
+    public class CityDto : LocationBaseDto
+    {
         public StateDto State { get; set; }
     }
 
-    public class StateDto
+    public class StateDto : LocationBaseDto
     {
-        public string Title { get; set; }
-        public string? PersianTitle { get; set; }
         public CountryDto Country { get; set; }
     }
 
-    public class CountryDto
+    public class CountryDto : LocationBaseDto
     {
-        public string Title { get; set; }
-        public string? PersianTitle { get; set; }
         public string? Emoji { get; set; }
     }
 }
