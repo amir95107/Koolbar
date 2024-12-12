@@ -1562,10 +1562,7 @@
           "Npgsql.EntityFrameworkCore.PostgreSQL": "8.0.2"
         },
         "runtime": {
-          "Datalayer.dll": {
-            "assemblyVersion": "1.0.0",
-            "fileVersion": "1.0.0.0"
-          }
+          "Datalayer.dll": {}
         }
       },
       "KoolbarTelegramBot/1.0.0": {
@@ -1575,10 +1572,7 @@
           "Telegram.Bot": "19.0.0"
         },
         "runtime": {
-          "KoolbarTelegramBot.dll": {
-            "assemblyVersion": "1.0.0",
-            "fileVersion": "1.0.0.0"
-          }
+          "KoolbarTelegramBot.dll": {}
         }
       }
     }

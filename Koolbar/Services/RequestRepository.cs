@@ -196,7 +196,7 @@ namespace Koolbar.Services
                     .SelectMany(x => x.State.Cities)
                     .ToListAsync();
 
-                var current = stateCities.FirstOrDefault(x => x.UniqueKey == request.SourceCityUniqueKey);
+                var current = stateCities.FirstOrDefault(x => x.UniqueKey == request.DestinationCityUniqueKey);
                 if (current is null)
                     return null;
 
